@@ -1,12 +1,12 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import styled from 'styled-components';
+import styled from 'styled-components'; // Removed axios import (we use api.js now)
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMusic, FiFileText, FiCpu, FiLoader } from 'react-icons/fi';
 import ShaderBackground from './components/ShaderBackground';
 import ResultCard from './components/ResultCard';
 import Hero3D from './components/Hero3D';
+import { analyzeTrack } from './services/api'; // <--- CRITICAL IMPORT
 
 // --- Theme & Layout ---
 const AppContainer = styled.div`
@@ -107,7 +107,7 @@ function App() {
   const [lyrics, setLyrics] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Initializing...");
-  const [results, setResults] = useState(null); // CHANGED: Stores Array of results
+  const [results, setResults] = useState(null);
 
   useEffect(() => {
     let interval;
@@ -124,15 +124,12 @@ function App() {
     if (!file || !lyrics) return alert("Please upload audio and lyrics.");
     setLoading(true);
     setResults(null);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('lyrics', lyrics);
 
+    // We do NOT use axios directly here. We use the service function.
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/v1/analyze', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setResults(response.data); // Store full list
+      // This calls the code in api.js which has the Render URL
+      const data = await analyzeTrack(file, lyrics); 
+      setResults(data); 
     } catch (error) {
       console.error(error);
       alert("Analysis failed. Ensure backend is running.");
