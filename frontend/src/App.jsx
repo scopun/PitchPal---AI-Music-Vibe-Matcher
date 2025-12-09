@@ -1,12 +1,14 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components'; // Removed axios import (we use api.js now)
+import styled from 'styled-components'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMusic, FiFileText, FiCpu, FiLoader } from 'react-icons/fi';
 import ShaderBackground from './components/ShaderBackground';
 import ResultCard from './components/ResultCard';
 import Hero3D from './components/Hero3D';
-import { analyzeTrack } from './services/api'; // <--- CRITICAL IMPORT
+
+// 👇 CRITICAL: Import the function that knows the Render URL
+import { analyzeTrack } from './services/api'; 
 
 // --- Theme & Layout ---
 const AppContainer = styled.div`
@@ -31,7 +33,6 @@ const Title = styled.h1`
   font-size: 5rem;
   font-weight: 900;
   margin: 0;
-  /* Music Vibe Gradient: Electric Purple to Teal */
   background: linear-gradient(to right, #c084fc, #6366f1, #2dd4bf);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -125,9 +126,8 @@ function App() {
     setLoading(true);
     setResults(null);
 
-    // We do NOT use axios directly here. We use the service function.
+    // 👇 FIXED: Using the analyzeTrack function from api.js
     try {
-      // This calls the code in api.js which has the Render URL
       const data = await analyzeTrack(file, lyrics); 
       setResults(data); 
     } catch (error) {
