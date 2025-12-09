@@ -1,0 +1,15 @@
+spotipy
+python-dotenv
+pandas
+numpy
+spotipy
+librosa
+requests
+openai
+matplotlib
+fastapi
+uvicorn
+python-multipart
+scikit-learn
+pydantic
+scipy
