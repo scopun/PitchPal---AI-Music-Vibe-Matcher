@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// 🔴 HARDCODED LIVE URL
-// This tells the app: "Always talk to Render, never localhost."
+// The Live Render Backend URL
 const API_URL = 'https://pitchpal-ai-music-vibe-matcher.onrender.com/api/v1';
 
 export const analyzeTrack = async (file, lyrics) => {
@@ -11,10 +10,9 @@ export const analyzeTrack = async (file, lyrics) => {
 
   console.log("Sending request to:", API_URL); 
 
-  const response = await axios.post(`${API_URL}/analyze`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  // FIX: Removed the manual 'Content-Type' header. 
+  // Axios will automatically set the correct headers + boundaries for files.
+  const response = await axios.post(`${API_URL}/analyze`, formData);
+  
   return response.data;
 };
