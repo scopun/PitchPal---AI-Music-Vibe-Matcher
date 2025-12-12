@@ -17,7 +17,7 @@ def get_semantic_shortlist(user_lyrics, artist_database, user_audio_features=Non
         audio_info = f"BPM: {bpm}, Energy: {energy}/1.0"
 
     # 2. Format Roster with RICH DESCRIPTIONS
-    # This is the secret sauce. We feed the AI the "Vibe" we just generated.
+    # This is the secret sauce. We feed the AI the "Vibe" generated from the DB.
     roster_text = ""
     for artist, data in artist_database.items():
         # Fallback to genres if description is missing

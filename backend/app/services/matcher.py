@@ -47,9 +47,9 @@ def calculate_musical_similarity(user_features, artist_features):
 def find_best_match(user_audio_features, user_lyrics):
     """
     Orchestrates the matching process using the 'AI-First' Strategy.
-    1. AI scans FULL roster for best Vibe/Lyrical matches.
+    1. AI scans FULL roster for best Vibe/Lyrical matches using Audio as context.
     2. System calculates Audio scores only for those AI picks.
-    3. Final Score = 70% AI (Lyrics) + 30% Math (Audio).
+    3. Final Score = 85% AI (Lyrics) + 15% Math (Audio).
     """
     try:
         with open(settings.DATABASE_PATH, "r", encoding="utf-8") as f:
@@ -78,32 +78,29 @@ def find_best_match(user_audio_features, user_lyrics):
             
         db_features = artist_database[artist_name]
         
-        # A. Audio Score (Weight: 30%)
-        # We calculate this strictly mathematically
+        # A. Audio Score (Weight: 15%)
         m_score = calculate_musical_similarity(user_audio_features, db_features)
         
-        # B. Lyrical Score (Weight: 70%)
+        # B. Lyrical Score (Weight: 85%)
         # We assign a base semantic score based on the AI's ranking preference.
-        # If AI put them #1 in the list, they get 1.0 score.
-        # If AI put them #20, they get 0.6 score.
         try:
             rank_index = semantic_candidates.index(artist_name)
             # Decays slightly as you go down the list
             l_score = max(0.5, 1.0 - (rank_index * 0.025)) 
         except ValueError:
-            l_score = 0.5 # Default if something weird happens
+            l_score = 0.5 
         
         # C. Final Weighted Formula
-        # Prioritize Lyrics (0.7) over Audio (0.3)
+        # Tuned to prioritize Vibe/Lyrics heavily
         final_score = (0.15 * m_score) + (0.85 * l_score)
         
         # Formatting for Frontend Report
         final_results.append({
             'artist': artist_name,
-            'final_score': round(final_score, 2), # e.g. 0.85
+            'final_score': round(final_score, 2),
             'musical_score': round(m_score, 2),
             'lyrical_score': round(l_score, 2),
-            'reason': "Matched via Lyrical Theme & Vibe Analysis", # Static reason for MVP, or extract from AI if complex
+            'reason': "Matched via Lyrical Theme & Vibe Analysis",
             'tech_comparison': {
                 'user_bpm': int(user_audio_features.get('tempo', 0)),
                 'artist_bpm': int(db_features.get('tempo', 0)),
