@@ -7,7 +7,6 @@ import ShaderBackground from './components/ShaderBackground';
 import ResultCard from './components/ResultCard';
 import Hero3D from './components/Hero3D';
 import { analyzeTrack } from './services/api';
-// IMPORT THE NEW TRANSPARENT LOGO
 import logoImg from './assets/pitchpal_logo.png';
 
 // --- Theme & Layout ---
@@ -17,7 +16,7 @@ const AppContainer = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 40px 20px 100px;
+  padding: 50px 20px 100px;
   position: relative;
   z-index: 10;
   overflow-y: auto;
@@ -26,43 +25,46 @@ const AppContainer = styled.div`
 
 const Header = styled(motion.div)`
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 `;
 
-// 👇 FINAL LOGO STYLES FOR AESTHETIC GLOW
+// 👇 UPDATED: BIGGER LOGO SIZE (600px)
 const HeroLogo = styled(motion.img)`
   width: 100%;
-  /* Adjusted max-width for a perfect, balanced size */
-  max-width: 380px; 
+  max-width: 600px; /* Increased from 320px to 600px */
   height: auto;
   margin-bottom: 15px;
-  /* Beautiful, soft multi-layered glow effect */
-  filter: drop-shadow(0 0 15px rgba(45, 212, 191, 0.4)) drop-shadow(0 0 30px rgba(99, 102, 241, 0.3));
+  
+  /* Sharp, aesthetic glow */
+  filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
 `;
 
 const Subtitle = styled.p`
-  color: #94a3b8;
-  font-size: 1.1rem;
-  letter-spacing: 3px;
+  background: linear-gradient(to right, #94a3b8, #cbd5e1, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.1rem; /* Slightly larger text to match big logo */
+  letter-spacing: 5px;
   text-transform: uppercase;
   margin-top: 5px;
   font-weight: 600;
-  /* Added subtle text shadow to match logo glow */
-  text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+  opacity: 0.9;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.3);
 `;
 
 const InputSection = styled(motion.div)`
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 30px;
+  background: rgba(10, 15, 30, 0.65);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
   padding: 40px;
   width: 100%;
-  max-width: 550px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  max-width: 520px;
+  box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.5);
   margin-bottom: 40px;
 `;
 
@@ -70,42 +72,66 @@ const InputGroup = styled.div`
   margin-bottom: 25px;
   label {
     display: flex; align-items: center; gap: 10px;
-    color: #e2e8f0; font-weight: 600; margin-bottom: 12px;
+    color: #cbd5e1; font-weight: 500; margin-bottom: 12px;
+    font-size: 0.95rem; letter-spacing: 0.5px;
   }
 `;
 
 const StyledInput = styled.input`
   width: 100%; padding: 16px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px; color: white;
-  transition: all 0.2s;
-  &:focus { border-color: #6366f1; outline: none; background: rgba(0, 0, 0, 0.6); }
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px; color: white;
+  transition: all 0.3s;
+  &:focus { 
+    border-color: #8b5cf6; 
+    outline: none; 
+    background: rgba(0, 0, 0, 0.5); 
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+  }
   &::file-selector-button {
-    background: #4f46e5; border: none; color: white;
+    background: rgba(255, 255, 255, 0.08); 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
     padding: 8px 16px; border-radius: 8px; margin-right: 15px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  &::file-selector-button:hover {
+    background: rgba(255, 255, 255, 0.15);
   }
 `;
 
 const StyledTextArea = styled.textarea`
   width: 100%; height: 140px; padding: 16px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px; color: white; resize: none;
-  &:focus { border-color: #6366f1; outline: none; background: rgba(0, 0, 0, 0.6); }
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px; color: white; resize: none;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s;
+  &:focus { 
+    border-color: #8b5cf6; 
+    outline: none; 
+    background: rgba(0, 0, 0, 0.5); 
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+  }
 `;
 
 const AnalyzeButton = styled(motion.button)`
-  background: linear-gradient(135deg, #4f46e5, #8b5cf6);
+  background: linear-gradient(135deg, #6366f1, #a855f7);
   color: white; border: none; padding: 20px;
-  width: 100%; border-radius: 18px;
-  font-size: 1.2rem; font-weight: 700; cursor: pointer;
+  width: 100%; border-radius: 16px;
+  font-size: 1.1rem; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 12px;
-  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.4);
+  letter-spacing: 0.5px;
   transition: all 0.3s;
   
-  &:hover { box-shadow: 0 0 40px rgba(79, 70, 229, 0.6); transform: translateY(-2px); }
-  &:disabled { opacity: 0.7; cursor: wait; }
+  &:hover { 
+    box-shadow: 0 15px 40px -5px rgba(99, 102, 241, 0.6); 
+    transform: translateY(-2px); 
+    filter: brightness(1.1);
+  }
+  &:disabled { opacity: 0.7; cursor: wait; filter: grayscale(0.5); }
 `;
 
 function App() {
@@ -118,10 +144,10 @@ function App() {
   useEffect(() => {
     let interval;
     if (loading) {
-      const msgs = ["Processing Audio Signal...", "Analyzing Lyrical Themes...", "Matching Vibe & Genre...", "Finalizing Ranking..."];
+      const msgs = ["Processing Sonic Fingerprint...", "Decoding Lyrical DNA...", "Matching Artist Vibe...", "Synthesizing Report..."];
       let i = 0;
       setLoadingMessage(msgs[0]);
-      interval = setInterval(() => { i = (i+1)%msgs.length; setLoadingMessage(msgs[i]); }, 2500);
+      interval = setInterval(() => { i = (i+1)%msgs.length; setLoadingMessage(msgs[i]); }, 2800);
     }
     return () => clearInterval(interval);
   }, [loading]);
@@ -148,18 +174,17 @@ function App() {
       <Hero3D />
       <AppContainer>
         <Header initial={{opacity:0, y:-20}} animate={{opacity:1, y:0}} transition={{duration:0.8}}>
-          {/* Added subtle entrance animation to the logo */}
           <HeroLogo 
             src={logoImg} 
             alt="PitchPal Logo" 
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 1, delay: 0.1 }}
           />
-          <Subtitle>AI Artist Matching Engine</Subtitle>
+          <Subtitle>The Science of Sonic Resonance</Subtitle>
         </Header>
 
-        <InputSection initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.2}}>
+        <InputSection initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.3}}>
           <InputGroup>
             <label><FiMusic /> Upload Demo Track</label>
             <StyledInput type="file" onChange={(e)=>setFile(e.target.files[0])} accept=".mp3,.wav,.m4a" />
@@ -169,7 +194,7 @@ function App() {
             <StyledTextArea placeholder="Paste lyrics here..." value={lyrics} onChange={(e)=>setLyrics(e.target.value)} />
           </InputGroup>
           <AnalyzeButton onClick={handleAnalyze} disabled={loading} whileHover={{scale:1.02}} whileTap={{scale:0.98}}>
-            {loading ? <><FiLoader className="spin" /> {loadingMessage}</> : <><FiCpu /> Run Analysis</>}
+            {loading ? <><FiLoader className="spin" /> {loadingMessage}</> : <><FiCpu /> Run Intelligence Engine</>}
           </AnalyzeButton>
         </InputSection>
 
