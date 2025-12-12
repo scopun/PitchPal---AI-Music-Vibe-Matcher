@@ -7,7 +7,7 @@ import ShaderBackground from './components/ShaderBackground';
 import ResultCard from './components/ResultCard';
 import Hero3D from './components/Hero3D';
 import { analyzeTrack } from './services/api';
-// Import your logo image
+// IMPORT THE NEW TRANSPARENT LOGO
 import logoImg from './assets/pitchpal_logo.png';
 
 // --- Theme & Layout ---
@@ -32,20 +32,15 @@ const Header = styled(motion.div)`
   align-items: center;
 `;
 
-// 👇 UPDATED LOGO STYLES
-const HeroLogo = styled.img`
+// 👇 FINAL LOGO STYLES FOR AESTHETIC GLOW
+const HeroLogo = styled(motion.img)`
   width: 100%;
-  /* 1. Reduced size for better balance */
-  max-width: 350px; 
+  /* Adjusted max-width for a perfect, balanced size */
+  max-width: 380px; 
   height: auto;
   margin-bottom: 15px;
-  
-  /* 2. THIS IS THE KEY FIX */
-  /* 'screen' blend mode makes black pixels transparent! */
-  mix-blend-mode: screen; 
-
-  /* 3. Added a subtle glow to make it pop */
-  filter: drop-shadow(0 0 10px rgba(45, 212, 191, 0.3)); 
+  /* Beautiful, soft multi-layered glow effect */
+  filter: drop-shadow(0 0 15px rgba(45, 212, 191, 0.4)) drop-shadow(0 0 30px rgba(99, 102, 241, 0.3));
 `;
 
 const Subtitle = styled.p`
@@ -55,6 +50,8 @@ const Subtitle = styled.p`
   text-transform: uppercase;
   margin-top: 5px;
   font-weight: 600;
+  /* Added subtle text shadow to match logo glow */
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
 `;
 
 const InputSection = styled(motion.div)`
@@ -151,7 +148,14 @@ function App() {
       <Hero3D />
       <AppContainer>
         <Header initial={{opacity:0, y:-20}} animate={{opacity:1, y:0}} transition={{duration:0.8}}>
-          <HeroLogo src={logoImg} alt="PitchPal Logo" />
+          {/* Added subtle entrance animation to the logo */}
+          <HeroLogo 
+            src={logoImg} 
+            alt="PitchPal Logo" 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          />
           <Subtitle>AI Artist Matching Engine</Subtitle>
         </Header>
 
