@@ -1,13 +1,16 @@
+// src/App.jsx
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components'; 
+import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMusic, FiFileText, FiCpu, FiLoader } from 'react-icons/fi';
 import ShaderBackground from './components/ShaderBackground';
 import ResultCard from './components/ResultCard';
 import Hero3D from './components/Hero3D';
-import { analyzeTrack } from './services/api'; 
+import { analyzeTrack } from './services/api';
+// Import your logo image
 import logoImg from './assets/pitchpal_logo.png';
 
+// --- Theme & Layout ---
 const AppContainer = styled.div`
   min-height: 100vh;
   display: flex;
@@ -29,12 +32,20 @@ const Header = styled(motion.div)`
   align-items: center;
 `;
 
+// 👇 UPDATED LOGO STYLES
 const HeroLogo = styled.img`
   width: 100%;
-  max-width: 450px; 
+  /* 1. Reduced size for better balance */
+  max-width: 350px; 
   height: auto;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 0 25px rgba(99, 102, 241, 0.4));
+  margin-bottom: 15px;
+  
+  /* 2. THIS IS THE KEY FIX */
+  /* 'screen' blend mode makes black pixels transparent! */
+  mix-blend-mode: screen; 
+
+  /* 3. Added a subtle glow to make it pop */
+  filter: drop-shadow(0 0 10px rgba(45, 212, 191, 0.3)); 
 `;
 
 const Subtitle = styled.p`
@@ -124,8 +135,8 @@ function App() {
     setResults(null);
 
     try {
-      const data = await analyzeTrack(file, lyrics); 
-      setResults(data); 
+      const data = await analyzeTrack(file, lyrics);
+      setResults(data);
     } catch (error) {
       console.error(error);
       alert("Analysis failed. Ensure backend is running.");
