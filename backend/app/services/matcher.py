@@ -60,8 +60,8 @@ def find_best_match(user_audio_features, user_lyrics):
     # --- STEP 1: SEMANTIC FILTER (The Accuracy Upgrade) ---
     print("Sending full roster to AI for semantic analysis...")
     
-    # This function now sends the WHOLE list to OpenAI
-    semantic_candidates = get_semantic_shortlist(user_lyrics, artist_database)
+    # UPDATE: We now pass user_audio_features so the AI knows the genre/vibe
+    semantic_candidates = get_semantic_shortlist(user_lyrics, artist_database, user_audio_features)
     
     # Fallback: If OpenAI fails or returns empty list, use the whole DB (Safeguard)
     if not semantic_candidates:
