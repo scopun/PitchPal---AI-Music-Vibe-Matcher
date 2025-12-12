@@ -6,48 +6,44 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def get_semantic_shortlist(user_lyrics, artist_database, user_audio_features=None):
     """
-    Sends ALL artists to OpenAI, but now with AUDIO CONTEXT to prevent genre mismatches.
+    Semantic Search using Rich Artist Descriptions (The "Nuance" Engine).
     """
-    # 1. Determine Audio Context (The Vibe Check)
-    audio_context = "General Vibe"
+    
+    # 1. Format Audio Context (as a hint, not a rule)
+    audio_info = "Unknown"
     if user_audio_features:
-        bpm = user_audio_features.get('tempo', 0)
-        energy = user_audio_features.get('energy', 0)
-        
-        if bpm > 115 and energy > 0.6:
-            audio_context = "High Energy / Dance / House / Up-Tempo Pop"
-        elif bpm < 100 and energy < 0.5:
-            audio_context = "Low Energy / Ballad / Acoustic / Slow Jam"
-        else:
-            audio_context = "Mid-Tempo / Pop / R&B"
+        bpm = int(user_audio_features.get('tempo', 0))
+        energy = round(user_audio_features.get('energy', 0), 2)
+        audio_info = f"BPM: {bpm}, Energy: {energy}/1.0"
 
-    # 2. Format the Roster
+    # 2. Format Roster with RICH DESCRIPTIONS
+    # This is the secret sauce. We feed the AI the "Vibe" we just generated.
     roster_text = ""
     for artist, data in artist_database.items():
-        genres = data.get("genres", [])
-        genre_str = ", ".join(genres) if genres else "General"
-        roster_text += f"- {artist} ({genre_str})\n"
+        # Fallback to genres if description is missing
+        desc = data.get("description", ", ".join(data.get("genres", ["General Artist"])))
+        roster_text += f"- {artist}: {desc}\n"
 
-    # 3. The New "Genre-Aware" Prompt
+    # 3. The "Nuance-First" Prompt
     prompt = f"""
-    You are an expert Music A&R.
+    You are an expert Music A&R Executive with a deep understanding of UK Music Culture.
     
-    CONTEXT:
-    I have a new demo track.
-    Audio Vibe: {audio_context} (BPM: {int(user_audio_features.get('tempo', 0))})
-    Lyrics: "{user_lyrics[:600]}..."
+    INPUT SONG DATA:
+    - Audio Stats: {audio_info}
+    - Lyrics: "{user_lyrics[:800]}..."
 
-    YOUR ROSTER:
+    YOUR ROSTER (With Vibe Profiles):
     {roster_text}
 
     TASK:
-    Identify the Top 20 artists from the roster who match BOTH the "{audio_context}" vibe AND the lyrical themes.
+    Identify the Top 15 Artists from the roster that are the best match.
     
-    CRITICAL RULES:
-    1. If the Audio Vibe is 'Dance/House', DO NOT suggest acoustic ballad singers (like Birdy or Lewis Capaldi) unless they are famous for dance hits.
-    2. Prioritize artists whose PRIMARY genre matches the Audio Vibe.
-    3. Look for "Soulful Lyrics" inside "Dance Production" (e.g., Becky Hill, Calvin Harris, Rudimental).
-    
+    CRITICAL INSTRUCTIONS:
+    1. READ THE DESCRIPTIONS: Do not guess based on the artist name. Use the provided "Vibe Profile".
+    2. THE "GIRL GROUP" TRAP: Note that the band named "Girl Group" is Indie/Punk. Do NOT match them to "Pop Anthem" lyrics just because of their name.
+    3. THE "DANCE" TRAP: If the lyrics are emotional/heartbreak but the BPM is high (120+), look for artists described as "Dance-Pop" or "Vocal House" (like Becky Hill). Do NOT pick acoustic ballad singers unless they have a matching remix vibe.
+    4. THE "BALLAD" TRAP: If lyrics are raw/acoustic, ignore high BPM (it might be double-time). Pick artists described as "Soulful," "Acoustic," or "Raw" (like Lewis Capaldi, Birdy).
+
     RETURN JSON:
     {{ "candidates": ["Artist 1", "Artist 2", ...] }}
     """

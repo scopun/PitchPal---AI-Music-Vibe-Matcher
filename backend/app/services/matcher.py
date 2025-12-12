@@ -95,7 +95,7 @@ def find_best_match(user_audio_features, user_lyrics):
         
         # C. Final Weighted Formula
         # Prioritize Lyrics (0.7) over Audio (0.3)
-        final_score = (0.3 * m_score) + (0.7 * l_score)
+        final_score = (0.15 * m_score) + (0.85 * l_score)
         
         # Formatting for Frontend Report
         final_results.append({
