@@ -6,26 +6,40 @@ def separate_components(y, sr):
     return y_harmonic, y_percussive
 
 def analyze_vocal_melody(y_harmonic, sr):
-    f0, _, _ = librosa.pyin(
-        y_harmonic, 
-        fmin=librosa.note_to_hz('C2'), 
-        fmax=librosa.note_to_hz('C6'),
-        sr=sr
-    )
-    median_f0 = np.median(f0[f0 > 0]) if np.any(f0 > 0) else 0.0
+    # OPTIMIZATION: 'pyin' is too heavy for free servers. 
+    # We use 'piptrack' which is much faster and uses less RAM.
+    pitches, magnitudes = librosa.piptrack(y=y_harmonic, sr=sr, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C6'))
+    
+    # Extract pitch from magnitudes
+    pitch_indices = np.argmax(magnitudes, axis=0)
+    pitch_vals = []
+    for t in range(magnitudes.shape[1]):
+        index = pitch_indices[t]
+        if magnitudes[index, t] > np.median(magnitudes): # Filter noise
+            pitch_vals.append(pitches[index, t])
+            
+    median_f0 = np.median(pitch_vals) if pitch_vals else 0.0
+    
     chroma = librosa.feature.chroma_stft(y=y_harmonic, sr=sr)
     avg_chroma = np.mean(chroma, axis=1)
     
     return {
-        'median_f0': float(median_f0) if not np.isnan(median_f0) else 0.0,
+        'median_f0': float(median_f0),
         'chroma_vector': avg_chroma.tolist() 
     }
 
 def analyze_rhythm_and_chords(y_percussive, sr):
     tempo, beats = librosa.beat.beat_track(y=y_percussive, sr=sr)
-    rhythm_complexity = len(beats) / (librosa.get_duration(y=y_percussive, sr=sr) / 60)
+    
+    # Handle scalar vs array return type from librosa
+    if isinstance(tempo, np.ndarray):
+        tempo = tempo[0]
+        
+    duration = librosa.get_duration(y=y_percussive, sr=sr)
+    rhythm_complexity = len(beats) / (duration / 60) if duration > 0 else 0
+    
     onset_harmonic = librosa.onset.onset_detect(y=y_percussive, sr=sr, units='time')
-    harmonic_changes = len(onset_harmonic) / librosa.get_duration(y=y_percussive, sr=sr)
+    harmonic_changes = len(onset_harmonic) / duration if duration > 0 else 0
     
     return {
         'rhythm_complexity': float(rhythm_complexity),
@@ -34,11 +48,16 @@ def analyze_rhythm_and_chords(y_percussive, sr):
 
 def analyze_demo_track(audio_file):
     try:
-        y, sr = librosa.load(audio_file, duration=30, sr=22050)
+        # CRITICAL FIX: Reduced duration to 15s to prevent Render Free Tier Crash
+        y, sr = librosa.load(audio_file, duration=15, sr=22050)
         
         onset_env = librosa.onset.onset_strength(y=y, sr=sr)
         tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr)
         
+        # Ensure tempo is a standard float
+        if isinstance(tempo, np.ndarray):
+            tempo = tempo[0]
+            
         rms = librosa.feature.rms(y=y)
         energy = np.mean(rms)
         normalized_energy = min(energy * 10, 1.0)
@@ -48,14 +67,17 @@ def analyze_demo_track(audio_file):
         rhythm_features = analyze_rhythm_and_chords(y_percussive, sr)
         
         return {
-            'tempo': float(tempo[0]) if isinstance(tempo, np.ndarray) else float(tempo),
+            'tempo': float(tempo),
             'energy': float(normalized_energy),
             'median_f0': melody_features['median_f0'],
             'chroma_vector': melody_features['chroma_vector'],
+            # Map new name 'avg_chroma_vector' to be safe if other files use it
+            'avg_chroma_vector': melody_features['chroma_vector'], 
             'rhythm_complexity': rhythm_features['rhythm_complexity'],
             'harmonic_change_rate': rhythm_features['harmonic_change_rate'],
             'duration': librosa.get_duration(y=y, sr=sr)
         }
     except Exception as e:
         print(f"Audio Analysis Error: {e}")
+        # Return None so the backend knows it failed gracefully
         return None
