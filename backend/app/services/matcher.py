@@ -7,17 +7,14 @@ from app.core.config import settings
 CHROMA_VECTOR_KEY = 'avg_chroma_vector'
 
 def calculate_musical_similarity(user_features, artist_features):
-    """
-    Calculates the mathematical audio similarity between user track and artist profile.
-    """
-    # 1. Chroma (Key/Melody) Similarity
+    # (Keep this function EXACTLY as it is - no changes needed here)
+    # ... [Copy your existing calculate_musical_similarity code here] ...
+    # Or just leave it if you didn't delete it.
+    # Re-pasting the body just in case:
     user_chroma = np.array(user_features.get(CHROMA_VECTOR_KEY, [0]*12)).reshape(1, -1)
     artist_chroma = np.array(artist_features.get(CHROMA_VECTOR_KEY, [0]*12)).reshape(1, -1)
-    
-    # Cosine similarity handles vector direction regardless of magnitude
     chroma_score = cosine_similarity(user_chroma, artist_chroma)[0][0]
 
-    # 2. Feature Similarity (Tempo, Energy, Rhythm)
     feature_weights = {
         'tempo': {'max_diff': 40.0, 'weight': 0.25},
         'energy': {'max_diff': 0.5, 'weight': 0.20},
@@ -34,67 +31,47 @@ def calculate_musical_similarity(user_features, artist_features):
             u_val = user_features[key]
             a_val = artist_features.get(key, 0.0)
             diff = abs(u_val - a_val)
-            # Calculate similarity score (1.0 is perfect match, 0.0 is far off)
             sim = max(0.0, 1.0 - (diff / params['max_diff']))
             total_sim += sim * params['weight']
             total_weight += params['weight']
             
     feature_score = total_sim / total_weight if total_weight > 0 else 0.0
-    
-    # Weighted combination: 40% Key/Melody + 60% Audio Features
     return (0.4 * chroma_score) + (0.6 * feature_score)
 
-def find_best_match(user_audio_features, user_lyrics):
-    """
-    Orchestrates the matching process using the 'AI-First' Strategy.
-    1. AI scans FULL roster for best Vibe/Lyrical matches using Audio as context.
-    2. System calculates Audio scores only for those AI picks.
-    3. Final Score = 85% AI (Lyrics) + 15% Math (Audio).
-    """
+# --- CHANGED TO ASYNC ---
+async def find_best_match(user_audio_features, user_lyrics):
     try:
         with open(settings.DATABASE_PATH, "r", encoding="utf-8") as f:
             artist_database = json.load(f)
     except Exception as e:
         return [{"error": f"Database Error: {e}"}]
 
-    # --- STEP 1: SEMANTIC FILTER (The Accuracy Upgrade) ---
-    print("Sending full roster to AI for semantic analysis...")
+    print("🚀 Sending to AI (Async)...")
     
-    # UPDATE: We now pass user_audio_features so the AI knows the genre/vibe
-    semantic_candidates = get_semantic_shortlist(user_lyrics, artist_database, user_audio_features)
+    # AWAIT the async function
+    semantic_candidates = await get_semantic_shortlist(user_lyrics, artist_database, user_audio_features)
     
-    # Fallback: If OpenAI fails or returns empty list, use the whole DB (Safeguard)
     if not semantic_candidates:
-        print("AI returned no candidates. Falling back to full database scan.")
+        print("⚠️ AI returned empty. Using fallback.")
         semantic_candidates = list(artist_database.keys())
 
-    # --- STEP 2: SCORING & RANKING ---
     final_results = []
     
     for artist_name in semantic_candidates:
-        # Check if artist exists in our DB (Handle potential AI spelling hallucinations)
         if artist_name not in artist_database:
             continue
             
         db_features = artist_database[artist_name]
-        
-        # A. Audio Score (Weight: 15%)
         m_score = calculate_musical_similarity(user_audio_features, db_features)
         
-        # B. Lyrical Score (Weight: 85%)
-        # We assign a base semantic score based on the AI's ranking preference.
         try:
             rank_index = semantic_candidates.index(artist_name)
-            # Decays slightly as you go down the list
             l_score = max(0.5, 1.0 - (rank_index * 0.025)) 
         except ValueError:
             l_score = 0.5 
         
-        # C. Final Weighted Formula
-        # Tuned to prioritize Vibe/Lyrics heavily
         final_score = (0.15 * m_score) + (0.85 * l_score)
         
-        # Formatting for Frontend Report
         final_results.append({
             'artist': artist_name,
             'final_score': round(final_score, 2),
@@ -109,8 +86,5 @@ def find_best_match(user_audio_features, user_lyrics):
             }
         })
 
-    # Sort by the final weighted score (Highest first)
     final_results.sort(key=lambda x: x['final_score'], reverse=True)
-    
-    # Return Top 10 for the UI
     return final_results[:10]
