@@ -7,7 +7,7 @@ def separate_components(y, sr):
     return y_harmonic, y_percussive
 
 def analyze_vocal_melody(y_harmonic, sr):
-    # 'piptrack' is lighter on RAM than 'pyin'
+    # 'piptrack' is lighter on RAM than 'pyin' and sufficient for feature extraction
     pitches, magnitudes = librosa.piptrack(y=y_harmonic, sr=sr, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C6'))
     
     pitch_indices = np.argmax(magnitudes, axis=0)
@@ -46,16 +46,20 @@ def analyze_rhythm_and_chords(y_percussive, sr):
 
 def analyze_demo_track(audio_file):
     try:
-        # CRITICAL FIX: Skip the intro!
-        # 1. Get total duration without loading file
+        # 1. Get total duration first (fast operation)
         total_dur = librosa.get_duration(filename=audio_file)
         
-        # 2. Start 30% into the track (e.g., skip first 40s of a 2min song)
+        # 2. Smart Offset: Skip the first 30% to avoid quiet intros
+        # e.g., for a 3min song, start at 54s
         offset = total_dur * 0.3
         
-        # 3. Load 20s from the "meat" of the song
-        # Lower sample rate (22050) saves RAM
-        y, sr = librosa.load(audio_file, offset=offset, duration=20, sr=22050)
+        # 3. Load 20s of the "Meat" of the song
+        # using sr=22050 saves RAM and is standard for music analysis
+        duration_to_analyze = 20
+        if total_dur < offset + duration_to_analyze:
+            offset = 0 # Fallback for very short samples
+            
+        y, sr = librosa.load(audio_file, offset=offset, duration=duration_to_analyze, sr=22050)
         
         onset_env = librosa.onset.onset_strength(y=y, sr=sr)
         tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr)
@@ -65,7 +69,7 @@ def analyze_demo_track(audio_file):
             
         rms = librosa.feature.rms(y=y)
         energy = np.mean(rms)
-        # Normalize energy 0.0 - 1.0 (Approximate)
+        # Normalize energy roughly 0.0 to 1.0
         normalized_energy = min(energy * 10, 1.0)
         
         y_harmonic, y_percussive = separate_components(y, sr)
@@ -77,6 +81,7 @@ def analyze_demo_track(audio_file):
             'energy': float(normalized_energy),
             'median_f0': melody_features['median_f0'],
             'chroma_vector': melody_features['chroma_vector'],
+            # Ensure this key exists for the matcher
             'avg_chroma_vector': melody_features['chroma_vector'], 
             'rhythm_complexity': rhythm_features['rhythm_complexity'],
             'harmonic_change_rate': rhythm_features['harmonic_change_rate'],

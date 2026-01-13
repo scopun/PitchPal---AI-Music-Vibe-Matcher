@@ -6,10 +6,10 @@ client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_features=None):
     """
-    ASYNC Semantic Search with Genre-Aware Prompting.
+    ASYNC Semantic Search with Genre & Audio-Aware Prompting.
     """
     
-    # 1. Format Audio Context
+    # 1. Format Audio Context with Heuristics
     audio_instruction = ""
     audio_info = "Unknown"
     
@@ -18,7 +18,7 @@ async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_featur
         energy = round(user_audio_features.get('energy', 0), 2)
         audio_info = f"BPM: {bpm}, Energy: {energy}/1.0"
         
-        # Heuristic rules to guide the AI
+        # Rule-based logic to guide the AI
         if bpm > 150:
              audio_instruction = "CRITICAL: Input is VERY FAST (>150 BPM). Prioritize 'Drum & Bass', 'Jungle', or fast 'Punk'. Avoid slow ballads."
         elif bpm > 120 and energy > 0.8:
@@ -30,17 +30,16 @@ async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_featur
     roster_text = ""
     count = 0
     for artist, data in artist_database.items():
-        # Limit context window if roster is huge
-        if count > 200: break 
+        if count > 250: break # Limit context size
         
-        # Read the new GENRES list
+        # Read the new GENRES list from the DB
         genres_list = data.get("genres", ["General"]) 
         genres_str = ", ".join(genres_list)
         
         desc = data.get("description", "Artist")
         artist_bpm = int(data.get("tempo", 0))
         
-        # Explicitly show Genre to AI
+        # Explicitly show Genre & BPM to AI
         roster_text += f"- {artist} [Genre: {genres_str}] (Avg BPM: {artist_bpm}): {desc}\n"
         count += 1
 
@@ -59,11 +58,10 @@ async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_featur
     
     {audio_instruction}
     
-    IMPORTANT GUIDELINES:
-    1. If the input is Drum & Bass (Fast BPM), pick artists with [Genre: Drum & Bass].
-    2. If the input is House/Dance, pick artists with [Genre: House] or [Genre: EDM].
-    3. If the input is Acoustic/Slow, pick artists with [Genre: Acoustic] or [Genre: Folk].
-    4. Match the lyrics' emotional tone (Sad vs. Happy).
+    GUIDELINES:
+    1. Match Genres: If input is DnB, pick DnB artists. If Acoustic, pick Folk/Soul.
+    2. Match Lyrical Tone: Sad/Heartbreak vs. Happy/Party.
+    3. Use the BPM/Energy provided in the roster to ensure a vibe match.
 
     RETURN JSON:
     {{ "candidates": ["Artist Name 1", "Artist Name 2", ...] }}
