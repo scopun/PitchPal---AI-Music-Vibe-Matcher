@@ -1,24 +1,21 @@
 import librosa
 import numpy as np
-import asyncio
 
 def separate_components(y, sr):
     y_harmonic, y_percussive = librosa.effects.hpss(y)
     return y_harmonic, y_percussive
 
 def analyze_vocal_melody(y_harmonic, sr):
-    # 'piptrack' is lighter on RAM than 'pyin' and sufficient for feature extraction
     pitches, magnitudes = librosa.piptrack(y=y_harmonic, sr=sr, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C6'))
-    
     pitch_indices = np.argmax(magnitudes, axis=0)
     pitch_vals = []
+    
     for t in range(magnitudes.shape[1]):
         index = pitch_indices[t]
         if magnitudes[index, t] > np.median(magnitudes): 
             pitch_vals.append(pitches[index, t])
             
     median_f0 = np.median(pitch_vals) if pitch_vals else 0.0
-    
     chroma = librosa.feature.chroma_stft(y=y_harmonic, sr=sr)
     avg_chroma = np.mean(chroma, axis=1)
     
@@ -29,7 +26,6 @@ def analyze_vocal_melody(y_harmonic, sr):
 
 def analyze_rhythm_and_chords(y_percussive, sr):
     tempo, beats = librosa.beat.beat_track(y=y_percussive, sr=sr)
-    
     if isinstance(tempo, np.ndarray):
         tempo = tempo[0]
         
@@ -46,21 +42,14 @@ def analyze_rhythm_and_chords(y_percussive, sr):
 
 def analyze_demo_track(audio_file):
     try:
-        # 1. Get total duration first (fast operation)
         total_dur = librosa.get_duration(filename=audio_file)
-        
-        # 2. Smart Offset: Skip the first 30% to avoid quiet intros
-        # e.g., for a 3min song, start at 54s
         offset = total_dur * 0.3
-        
-        # 3. Load 20s of the "Meat" of the song
-        # using sr=22050 saves RAM and is standard for music analysis
         duration_to_analyze = 20
+        
         if total_dur < offset + duration_to_analyze:
-            offset = 0 # Fallback for very short samples
+            offset = 0 
             
         y, sr = librosa.load(audio_file, offset=offset, duration=duration_to_analyze, sr=22050)
-        
         onset_env = librosa.onset.onset_strength(y=y, sr=sr)
         tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr)
         
@@ -69,7 +58,6 @@ def analyze_demo_track(audio_file):
             
         rms = librosa.feature.rms(y=y)
         energy = np.mean(rms)
-        # Normalize energy roughly 0.0 to 1.0
         normalized_energy = min(energy * 10, 1.0)
         
         y_harmonic, y_percussive = separate_components(y, sr)
@@ -81,7 +69,6 @@ def analyze_demo_track(audio_file):
             'energy': float(normalized_energy),
             'median_f0': melody_features['median_f0'],
             'chroma_vector': melody_features['chroma_vector'],
-            # Ensure this key exists for the matcher
             'avg_chroma_vector': melody_features['chroma_vector'], 
             'rhythm_complexity': rhythm_features['rhythm_complexity'],
             'harmonic_change_rate': rhythm_features['harmonic_change_rate'],

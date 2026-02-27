@@ -5,11 +5,6 @@ from app.core.config import settings
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_features=None):
-    """
-    ASYNC Semantic Search with Genre & Audio-Aware Prompting.
-    """
-    
-    # 1. Format Audio Context with Heuristics
     audio_instruction = ""
     audio_info = "Unknown"
     
@@ -18,32 +13,26 @@ async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_featur
         energy = round(user_audio_features.get('energy', 0), 2)
         audio_info = f"BPM: {bpm}, Energy: {energy}/1.0"
         
-        # Rule-based logic to guide the AI
         if bpm > 150:
-             audio_instruction = "CRITICAL: Input is VERY FAST (>150 BPM). Prioritize 'Drum & Bass', 'Jungle', or fast 'Punk'. Avoid slow ballads."
-        elif bpm > 120 and energy > 0.8:
-             audio_instruction = "CRITICAL: Input is High-Energy Dance/House (>120 BPM). Prioritize 'House', 'EDM', 'Dance-Pop'. Avoid Acoustic/Folk."
-        elif energy < 0.5:
-             audio_instruction = "CRITICAL: Input is Low Energy. Prioritize 'Acoustic', 'Ballad', 'Soul', 'Lo-Fi'. Avoid Club bangers."
+             audio_instruction = "CRITICAL: Track is VERY FAST (>150 BPM). Exclude slow acoustic artists."
+        elif bpm >= 120 and energy >= 0.75:
+             audio_instruction = "CRITICAL: Track is HIGH ENERGY DANCE. Strictly exclude Acoustic, Folk, and Ballad artists."
+        elif energy <= 0.55:
+             audio_instruction = "CRITICAL: Track is LOW ENERGY. Strictly exclude EDM, House, and Dance artists."
 
-    # 2. Format Roster (Optimized for Genres)
     roster_text = ""
     count = 0
     for artist, data in artist_database.items():
-        if count > 250: break # Limit context size
+        if count > 250: break 
         
-        # Read the new GENRES list from the DB
         genres_list = data.get("genres", ["General"]) 
         genres_str = ", ".join(genres_list)
-        
         desc = data.get("description", "Artist")
         artist_bpm = int(data.get("tempo", 0))
         
-        # Explicitly show Genre & BPM to AI
         roster_text += f"- {artist} [Genre: {genres_str}] (Avg BPM: {artist_bpm}): {desc}\n"
         count += 1
 
-    # 3. Prompt
     prompt = f"""
     You are an expert Music A&R Executive.
     
@@ -54,17 +43,12 @@ async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_featur
     YOUR ROSTER:
     {roster_text}
 
-    TASK: Identify the Top 15 Artists that match BOTH the Audio Energy AND the Lyrical Theme.
+    TASK: Identify the Top 20 Artists that perfectly match the Audio Stats and Lyrical Theme.
     
     {audio_instruction}
     
-    GUIDELINES:
-    1. Match Genres: If input is DnB, pick DnB artists. If Acoustic, pick Folk/Soul.
-    2. Match Lyrical Tone: Sad/Heartbreak vs. Happy/Party.
-    3. Use the BPM/Energy provided in the roster to ensure a vibe match.
-
     RETURN JSON:
-    {{ "candidates": ["Artist Name 1", "Artist Name 2", ...] }}
+    {{ "candidates": ["Artist 1", "Artist 2"] }}
     """
 
     try:
@@ -75,7 +59,7 @@ async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_featur
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"},
-            temperature=0.3
+            temperature=0.2
         )
         content = response.choices[0].message.content
         data = json.loads(content)

@@ -1,62 +1,43 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-import shutil
 import os
-import uuid
-import asyncio # <--- NEW IMPORT
-from app.services.audio_engine import analyze_demo_track
+import shutil
+import tempfile
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from app.services.audio_analyzer import analyze_demo_track
 from app.services.matcher import find_best_match
 
 router = APIRouter()
 
-@router.post("/analyze")
-async def analyze_track(
-    file: UploadFile = File(...),
+@router.post("/match")
+async def match_artist(
+    audio_file: UploadFile = File(...),
     lyrics: str = Form(...)
 ):
-    temp_filename = f"temp_{uuid.uuid4()}.{file.filename.split('.')[-1]}"
-    
+    if not audio_file.filename.endswith(('.mp3', '.wav', '.m4a')):
+        raise HTTPException(status_code=400, detail="Invalid file format")
+
+    temp_file_path = ""
     try:
-        # 1. Save File
-        with open(temp_filename, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # 2. Audio Analysis (Run in THREAD for speed)
-        print(f"🎵 Starting Audio Analysis on: {temp_filename}")
+        fd, temp_file_path = tempfile.mkstemp(suffix=os.path.splitext(audio_file.filename)[1])
+        os.close(fd)
         
-        # This moves the heavy CPU work off the main path
-        audio_features = await asyncio.to_thread(analyze_demo_track, temp_filename)
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(audio_file.file, buffer)
 
-        if audio_features is None:
-            print("⚠️ Audio Analysis Failed. Using Default Values.")
-            audio_features = {
-                'tempo': 120.0,
-                'energy': 0.7,
-                'avg_chroma_vector': [0.1] * 12,
-                'chroma_vector': [0.1] * 12,
-                'rhythm_complexity': 0.5,
-                'harmonic_change_rate': 0.5,
-                'median_f0': 440.0,
-                'duration': 180.0
-            }
-        else:
-            print("✅ Audio Analysis Complete.")
+        audio_features = analyze_demo_track(temp_file_path)
+        
+        if not audio_features:
+            raise HTTPException(status_code=500, detail="Audio analysis failed")
 
-        # 3. AI Matching (Now Async)
-        print("🧠 Running AI Matcher...")
         results = await find_best_match(audio_features, lyrics)
         
-        if results and "error" in results[0]:
-             raise HTTPException(status_code=500, detail=results[0]["error"])
-             
-        return results
+        return {
+            "success": True,
+            "matches": results,
+            "extracted_features": audio_features
+        }
 
     except Exception as e:
-        print(f"❌ Server Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
     finally:
-        if os.path.exists(temp_filename):
-            try:
-                os.remove(temp_filename)
-            except:
-                pass
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
