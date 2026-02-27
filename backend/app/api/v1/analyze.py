@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from app.services.audio_analyzer import analyze_demo_track
+from app.services.audio_engine import analyze_demo_track
 from app.services.matcher import find_best_match
 
 router = APIRouter()
