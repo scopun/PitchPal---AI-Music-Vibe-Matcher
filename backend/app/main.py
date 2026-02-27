@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.api import analyze
+from app.api.v1 import analyze
 from app.core.config import settings
 from app.core.database import load_database, artist_db_cache
 
@@ -30,7 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(analyze.router, prefix="/api", tags=["Analysis"])
+app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
 
 @app.get("/")
 def root():
