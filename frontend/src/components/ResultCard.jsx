@@ -123,9 +123,18 @@ const TableHeader = styled(Row)`
 `;
 
 export default function ResultCard({ results }) {
-  const winner = results[0];
-  const podium = results.slice(1, 3);
-  const rest = results.slice(3, 8); // Top 8 total
+  // FIX: Unpack the new object structure from the backend
+  // Fallback to results directly if for some reason it's already an array
+  const matchArray = results.matches || results;
+
+  // Critical Safety Catch to prevent black screen crashes
+  if (!matchArray || !Array.isArray(matchArray) || matchArray.length === 0) {
+    return null; 
+  }
+
+  const winner = matchArray[0];
+  const podium = matchArray.slice(1, 3);
+  const rest = matchArray.slice(3, 8); // Top 8 total
 
   // Fallback data if technical details are missing
   const tech = winner.tech_comparison || { user_bpm: 120, artist_bpm: 124, user_energy: 0.8, artist_energy: 0.85 };
