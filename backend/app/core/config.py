@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     PROJECT_VERSION: str = "1.0.0"
     
     # Required Fields
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     DATABASE_PATH: str = DB_PATH
 
     class Config:

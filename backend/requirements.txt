@@ -5,7 +5,6 @@ numpy
 spotipy
 librosa
 requests
-openai
 matplotlib
 fastapi
 uvicorn
@@ -14,3 +13,4 @@ scikit-learn
 pydantic
 scipy
 pydantic-settings
+anthropic
