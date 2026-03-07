@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FiAward, FiTrendingUp, FiList, FiActivity, FiTag, FiBarChart2, FiTarget, FiGlobe } from 'react-icons/fi';
+import { FiAward, FiTrendingUp, FiList, FiActivity, FiTag, FiBarChart2, FiTarget, FiGlobe, FiAlertCircle } from 'react-icons/fi';
 
 const Wrapper = styled(motion.div)`
   width: 100%;
@@ -11,7 +11,6 @@ const Wrapper = styled(motion.div)`
   font-family: 'Inter', sans-serif;
 `;
 
-// --- The Winner Card (Gold) ---
 const WinnerCard = styled.div`
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(40px);
@@ -52,7 +51,6 @@ const ReasonText = styled.div`
   line-height: 1.7; margin-bottom: 25px;
 `;
 
-// --- NEW: Investor Pitch Section ---
 const PitchStrategyBox = styled.div`
   background: linear-gradient(145deg, rgba(139, 92, 246, 0.1), rgba(45, 212, 191, 0.05));
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -77,7 +75,6 @@ const MarketFitChip = styled(TagChip)`
   background: rgba(45, 212, 191, 0.1); color: #5eead4; border-color: rgba(45, 212, 191, 0.3);
 `;
 
-// --- Tech Specs Grid ---
 const TechGrid = styled.div`
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;
   margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 25px;
@@ -93,7 +90,6 @@ const TechItem = styled.div`
   span.sub { font-size: 0.8rem; color: #2dd4bf; }
 `;
 
-// --- Podium Grid (2nd & 3rd Place) ---
 const PodiumGrid = styled.div`
   display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
   @media(max-width: 600px) { grid-template-columns: 1fr; }
@@ -113,7 +109,6 @@ const RankCircle = styled.div`
   margin-right: 15px; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 `;
 
-// --- Tracklist Table ---
 const TableCard = styled.div`
   background: rgba(15, 23, 42, 0.6); border-radius: 24px; padding: 30px;
   border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px);
@@ -138,33 +133,46 @@ const TableHeader = styled(Row)`
 `;
 
 export default function ResultCard({ results }) {
-  // Extract the specific fields from the new Claude Opus JSON
-  const matchArray = results.matches || [];
-  const pitchAngle = results.pitch_angle || "A unique sonic blend ready for market.";
-  const marketFit = results.market_fit || "Global";
-  const genreTags = results.genre_tags || [];
+  const matchArray = Array.isArray(results?.matches) ? results.matches : (Array.isArray(results) ? results : []);
+  
+  if (matchArray.length === 0) {
+    return (
+      <Wrapper initial={{opacity:0, y:20}} animate={{opacity:1, y:0}}>
+        <WinnerCard style={{ textAlign: 'center', borderColor: '#ef4444' }}>
+          <FiAlertCircle size={50} color="#ef4444" style={{ marginBottom: '20px' }} />
+          <h2 style={{ color: '#f87171', marginTop: 0 }}>Analysis Error</h2>
+          <ReasonText style={{ borderLeftColor: '#ef4444', backgroundColor: 'transparent', padding: '0 20px', fontSize: '1rem' }}>
+            {results?.error || "The AI engine returned an unexpected data structure. Please check the backend logs."}
+          </ReasonText>
+        </WinnerCard>
+      </Wrapper>
+    );
+  }
 
-  if (!matchArray || matchArray.length === 0) return null; 
+  const pitchAngle = results?.pitch_angle || "A unique sonic blend ready for market.";
+  const marketFit = results?.market_fit || "Global";
+  const genreTags = Array.isArray(results?.genre_tags) ? results.genre_tags : [];
 
-  const winner = matchArray[0];
+  const winner = matchArray[0] || {};
   const podium = matchArray.slice(1, 3);
   const rest = matchArray.slice(3, 8); 
 
-  // Parse scores safely
-  const parseScore = (val) => val <= 1 ? (val * 100).toFixed(0) : parseFloat(val).toFixed(0);
+  const parseScore = (val) => {
+    if (!val || isNaN(val)) return "0";
+    return val <= 1 ? (val * 100).toFixed(0) : parseFloat(val).toFixed(0);
+  };
+  
   const tech = winner.tech_comparison || { user_bpm: "--", artist_bpm: "--", user_energy: 0, artist_energy: 0 };
   
   return (
     <Wrapper initial={{opacity:0, y:50}} animate={{opacity:1, y:0}} transition={{duration:0.6}}>
-      
-      {/* 🏆 #1 Winner Main Card */}
       <WinnerCard>
         <HeaderFlex>
           <div>
             <h4 style={{margin:'0 0 12px', color:'#a78bfa', display:'flex', alignItems:'center', gap:8, textTransform:'uppercase', fontSize:'0.85rem', fontWeight:700, letterSpacing:'1px'}}>
               <FiAward /> Primary Artist Match
             </h4>
-            <WinnerName>{winner.artist}</WinnerName>
+            <WinnerName>{winner.artist || "Unknown Artist"}</WinnerName>
           </div>
           <ScoreBadge>
             <div className="num">{parseScore(winner.final_score)}%</div>
@@ -172,7 +180,6 @@ export default function ResultCard({ results }) {
           </ScoreBadge>
         </HeaderFlex>
 
-        {/* Dynamic Tags */}
         <TagsRow>
           <MarketFitChip><FiGlobe /> {marketFit}</MarketFitChip>
           {genreTags.map((tag, i) => (
@@ -180,16 +187,13 @@ export default function ResultCard({ results }) {
           ))}
         </TagsRow>
 
-        {/* The Claude Opus Reasoning */}
-        <ReasonText>"{winner.reason}"</ReasonText>
+        <ReasonText>"{winner.reason || "High stylistic alignment based on lyrical analysis."}"</ReasonText>
 
-        {/* The New Pitch Angle Block */}
         <PitchStrategyBox>
           <h4><FiTarget /> A&R Pitch Strategy</h4>
           <p>{pitchAngle}</p>
         </PitchStrategyBox>
 
-        {/* Tech Specs Section */}
         <h4 style={{margin:'0 0 10px', color:'#94a3b8', fontSize:'0.8rem', textTransform:'uppercase', letterSpacing:'1px'}}>
           <FiBarChart2 style={{marginRight:8, position:'relative', top:1}}/> Audio Fingerprint Analysis
         </h4>
@@ -210,52 +214,52 @@ export default function ResultCard({ results }) {
             <span className="sub">Thematic Resonance</span>
           </TechItem>
         </TechGrid>
-
       </WinnerCard>
 
-      {/* 🥈🥉 Runners Up */}
-      <h3 style={{color:'#94a3b8', fontSize:'0.9rem', textTransform:'uppercase', margin:'10px 0 0', letterSpacing:'2px'}}><FiTrendingUp style={{marginRight:8, position:'relative', top:1}}/> Close Alternatives</h3>
-      <PodiumGrid>
-        {podium.map((artist, idx) => (
-          <AltCard key={idx}>
-            <div style={{display:'flex', alignItems:'center'}}>
-              <RankCircle rank={idx + 2}>#{idx + 2}</RankCircle>
-              <div>
-                <div style={{color:'#94a3b8', fontSize:'0.75rem', textTransform:'uppercase', fontWeight:700, letterSpacing:'1px'}}>Artist</div>
-                <div style={{color:'white', fontWeight:700, fontSize:'1.5rem'}}>{artist.artist}</div>
-              </div>
-            </div>
-            <div style={{textAlign:'right'}}>
-              <div style={{color:'#a78bfa', fontWeight:800, fontSize:'1.8rem'}}>{parseScore(artist.final_score)}%</div>
-              <div style={{color:'#64748b', fontSize:'0.75rem', fontWeight:600}}>MATCH</div>
-            </div>
-          </AltCard>
-        ))}
-      </PodiumGrid>
+      {podium.length > 0 && (
+        <>
+          <h3 style={{color:'#94a3b8', fontSize:'0.9rem', textTransform:'uppercase', margin:'10px 0 0', letterSpacing:'2px'}}><FiTrendingUp style={{marginRight:8, position:'relative', top:1}}/> Close Alternatives</h3>
+          <PodiumGrid>
+            {podium.map((artist, idx) => (
+              <AltCard key={idx}>
+                <div style={{display:'flex', alignItems:'center'}}>
+                  <RankCircle rank={idx + 2}>#{idx + 2}</RankCircle>
+                  <div>
+                    <div style={{color:'#94a3b8', fontSize:'0.75rem', textTransform:'uppercase', fontWeight:700, letterSpacing:'1px'}}>Artist</div>
+                    <div style={{color:'white', fontWeight:700, fontSize:'1.5rem'}}>{artist.artist}</div>
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{color:'#a78bfa', fontWeight:800, fontSize:'1.8rem'}}>{parseScore(artist.final_score)}%</div>
+                  <div style={{color:'#64748b', fontSize:'0.75rem', fontWeight:600}}>MATCH</div>
+                </div>
+              </AltCard>
+            ))}
+          </PodiumGrid>
+        </>
+      )}
 
-      {/* 📋 Data Table */}
-      <TableCard>
-        <h4 style={{margin:'0 0 20px', color:'#94a3b8', display:'flex', alignItems:'center', gap:10, textTransform:'uppercase', fontSize:'0.9rem', letterSpacing:'1px'}}>
-          <FiList/> Full Roster Ranking
-        </h4>
-        
-        <TableHeader>
-          <span>#</span>
-          <span>Artist Name</span>
-          <span style={{textAlign:'right'}}>Total Score</span>
-          <span style={{textAlign:'right'}}>Lyrical Fit</span>
-        </TableHeader>
-
-        {rest.map((artist, idx) => (
-          <Row key={idx}>
-            <span className="rank">0{idx + 4}</span>
-            <span className="name">{artist.artist}</span>
-            <span className="score">{parseScore(artist.final_score)}%</span>
-            <span className="lyric">{parseScore(artist.lyrical_score)}%</span>
-          </Row>
-        ))}
-      </TableCard>
-
+      {rest.length > 0 && (
+        <TableCard>
+          <h4 style={{margin:'0 0 20px', color:'#94a3b8', display:'flex', alignItems:'center', gap:10, textTransform:'uppercase', fontSize:'0.9rem', letterSpacing:'1px'}}>
+            <FiList/> Full Roster Ranking
+          </h4>
+          <TableHeader>
+            <span>#</span>
+            <span>Artist Name</span>
+            <span style={{textAlign:'right'}}>Total Score</span>
+            <span style={{textAlign:'right'}}>Lyrical Fit</span>
+          </TableHeader>
+          {rest.map((artist, idx) => (
+            <Row key={idx}>
+              <span className="rank">0{idx + 4}</span>
+              <span className="name">{artist.artist}</span>
+              <span className="score">{parseScore(artist.final_score)}%</span>
+              <span className="lyric">{parseScore(artist.lyrical_score)}%</span>
+            </Row>
+          ))}
+        </TableCard>
+      )}
     </Wrapper>
   );
 }

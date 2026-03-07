@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
@@ -13,76 +14,28 @@ async def get_claude_vibe_match(lyrics: str, audio_features: dict, artist_roster
     audio_data_str = json.dumps(audio_features, indent=2)
 
     system_prompt = f"""
-    You are an expert music A&R consultant and musicologist specialising 
-    in artist matchmaking for songwriters and composers. Your job is to 
-    analyse submitted song lyrics and identify the closest matching 
-    professional recording artists based on multiple weighted dimensions.
-    
+    You are an expert music A&R consultant and musicologist specialising in artist matchmaking for songwriters and composers. Your job is to analyse submitted song lyrics and identify the closest matching professional recording artists based on multiple weighted dimensions.
+
     Analyse the following lyrics across these dimensions:
-    
-    1. LYRICAL STYLE — metaphor density, imagery type (domestic, nature, 
-    abstract, body), narrative voice (first person confessional, 
-    observational, abstract), vocabulary register (poetic, conversational, 
-    raw)
-    
-    2. EMOTIONAL TONE — primary emotion and emotional arc (e.g. grief to 
-    hope, longing to acceptance), emotional intensity (restrained vs. 
-    explosive), vulnerability level
-    
-    3. THEMATIC CONTENT — recurring themes and subject matter (love, loss, 
-    identity, spirituality, nature, social commentary etc.)
-    
-    4. SONIC PROFILE — based on lyrical rhythm, cadence, syllable density 
-    and phrasing, infer likely tempo feel (sparse/slow, mid-tempo, 
-    driving), likely instrumentation (orchestral, acoustic, electronic, 
-    band), vocal delivery style (intimate whisper, powerful belt, 
-    conversational)
-    
-    5. GENRE & SCENE — identify the most likely genre(s) and sub-genre(s) 
-    with geographic/cultural context where relevant (e.g. UK indie folk, 
-    Nashville country, LA pop, Afrobeats)
-    
-    6. CULTURAL & MARKET FIT — identify which music markets and audiences 
-    this song would resonate with globally
-    
-    Based on this analysis, return the following:
-    
-    PRIMARY MATCH: The single closest artist match with a confidence score 
-    (0-100%) and a 2-3 sentence explanation of WHY they match across the 
-    dimensions above. Be specific — reference the artist's actual known 
-    works, lyrical style and sound.
-    
-    CLOSE ALTERNATIVES (#2 and #3): Two further strong matches with scores 
-    and brief explanations.
-    
-    FULL ROSTER RANKING: Rank the following artists from most to least 
-    compatible, with a total score and lyrical fit score for each:
-    {formatted_roster}
-    
-    GENRE TAGS: List 3-5 genre/mood tags for this song.
-    
-    PITCH ANGLE: Write 1-2 sentences a songwriter could use when pitching 
-    this song to a label or publisher — capturing what makes it 
-    distinctive.
-    
+    1. LYRICAL STYLE — metaphor density, imagery type, narrative voice, vocabulary register.
+    2. EMOTIONAL TONE — primary emotion and emotional arc, emotional intensity, vulnerability level.
+    3. THEMATIC CONTENT — recurring themes and subject matter.
+    4. SONIC PROFILE — based on lyrical rhythm, infer likely tempo feel, likely instrumentation, vocal delivery style.
+    5. GENRE & SCENE — identify the most likely genre(s) and sub-genre(s) with geographic/cultural context.
+    6. CULTURAL & MARKET FIT — identify which music markets and audiences this song would resonate with globally.
+
     IMPORTANT RULES:
-    - Prioritise lyrical tone, emotional world and thematic resonance 
-      OVER assumed tempo or production style
-    - Do not default to the most commercially famous artist — match on 
-      genuine stylistic alignment
-    - Actively consider UK, European, and global artists, not just 
-      US-centric matches
-    - If the lyrics suggest a niche or emerging scene, say so explicitly
-    - Be honest about confidence levels — a 55% match should reflect 
-      genuine uncertainty, not false confidence
-    
-    Lyrics to analyse:
-    {lyrics}
-    
-    Audio analysis data (if available):
+    - Prioritise lyrical tone, emotional world and thematic resonance OVER assumed tempo or production style.
+    - Do not default to the most commercially famous artist — match on genuine stylistic alignment.
+    - Actively consider UK, European, and global artists, not just US-centric matches.
+    - Be honest about confidence levels.
+
+    Audio analysis data (extracted via librosa):
     {audio_data_str}
 
-    CRITICAL SYSTEM INSTRUCTION:
+    ARTIST ROSTER:
+    {formatted_roster}
+    
     You MUST return the output strictly as a raw JSON object with no markdown formatting or conversational text. Use this exact schema:
     {{
         "matches": [
@@ -104,29 +57,31 @@ async def get_claude_vibe_match(lyrics: str, audio_features: dict, artist_roster
         "pitch_angle": "1-2 sentences capturing what makes it distinctive for a pitch.",
         "market_fit": "Target market (e.g., UK Indie, Global Pop)"
     }}
-    Ensure 'matches' contains the top 8 ranked artists from the full roster ranking.
+    Ensure 'matches' contains the top 8 ranked artists from the provided roster.
     """
+
+    user_message = f"Lyrics to analyse:\n{lyrics}"
 
     try:
         response = anthropic_client.messages.create(
             model="claude-opus-4-6",
-            max_tokens=3000,
+            max_tokens=2500,
             temperature=0.3,
             system=system_prompt,
             messages=[
-                {"role": "user", "content": "Please analyze the provided lyrics and audio data against the roster according to your instructions and output the JSON."}
+                {"role": "user", "content": user_message}
             ]
         )
 
-        raw_json_str = response.content[0].text.strip()
+        raw_text = response.content[0].text.strip()
         
-        if raw_json_str.startswith("```json"):
-            raw_json_str = raw_json_str[7:-3].strip()
-        elif raw_json_str.startswith("```"):
-            raw_json_str = raw_json_str[3:-3].strip()
-
-        return json.loads(raw_json_str)
+        json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+        
+        if json_match:
+            clean_json_str = json_match.group(0)
+            return json.loads(clean_json_str)
+        else:
+            return {"error": "Failed to extract JSON from Claude response", "matches": [], "raw": raw_text}
 
     except Exception as e:
-        print(f"Claude API Error: {e}")
         return {"error": str(e), "matches": []}
