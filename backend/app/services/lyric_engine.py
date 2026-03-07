@@ -1,65 +1,132 @@
+import os
 import json
-from openai import AsyncOpenAI
-from app.core.config import settings
+from anthropic import Anthropic
+from dotenv import load_dotenv
 
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+load_dotenv()
 
-async def get_semantic_shortlist(user_lyrics, artist_database, user_audio_features=None):
-    audio_hint = ""
-    audio_info = "Unknown"
+anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    if user_audio_features:
-        bpm = int(user_audio_features.get("tempo", 0))
-        energy = round(user_audio_features.get("energy", 0), 2)
-        audio_info = f"BPM: {bpm}, Energy: {energy}/1.0"
-        audio_hint = "Use Audio Stats as a secondary signal only. Lyrics and description fit matter more than BPM."
+async def get_claude_vibe_match(lyrics: str, audio_features: dict, artist_roster: list) -> dict:
+    formatted_roster = "\n".join([f"- {a['name']} (Genre: {a.get('genre', 'Unknown')}, Vibe: {a.get('vibe', 'Unknown')})" for a in artist_roster])
+    
+    audio_data_str = json.dumps(audio_features, indent=2)
 
-    roster_text = ""
-    count = 0
-    for artist, data in artist_database.items():
-        if count > 250:
-            break
+    system_prompt = f"""
+    You are an expert music A&R consultant and musicologist specialising 
+    in artist matchmaking for songwriters and composers. Your job is to 
+    analyse submitted song lyrics and identify the closest matching 
+    professional recording artists based on multiple weighted dimensions.
+    
+    Analyse the following lyrics across these dimensions:
+    
+    1. LYRICAL STYLE — metaphor density, imagery type (domestic, nature, 
+    abstract, body), narrative voice (first person confessional, 
+    observational, abstract), vocabulary register (poetic, conversational, 
+    raw)
+    
+    2. EMOTIONAL TONE — primary emotion and emotional arc (e.g. grief to 
+    hope, longing to acceptance), emotional intensity (restrained vs. 
+    explosive), vulnerability level
+    
+    3. THEMATIC CONTENT — recurring themes and subject matter (love, loss, 
+    identity, spirituality, nature, social commentary etc.)
+    
+    4. SONIC PROFILE — based on lyrical rhythm, cadence, syllable density 
+    and phrasing, infer likely tempo feel (sparse/slow, mid-tempo, 
+    driving), likely instrumentation (orchestral, acoustic, electronic, 
+    band), vocal delivery style (intimate whisper, powerful belt, 
+    conversational)
+    
+    5. GENRE & SCENE — identify the most likely genre(s) and sub-genre(s) 
+    with geographic/cultural context where relevant (e.g. UK indie folk, 
+    Nashville country, LA pop, Afrobeats)
+    
+    6. CULTURAL & MARKET FIT — identify which music markets and audiences 
+    this song would resonate with globally
+    
+    Based on this analysis, return the following:
+    
+    PRIMARY MATCH: The single closest artist match with a confidence score 
+    (0-100%) and a 2-3 sentence explanation of WHY they match across the 
+    dimensions above. Be specific — reference the artist's actual known 
+    works, lyrical style and sound.
+    
+    CLOSE ALTERNATIVES (#2 and #3): Two further strong matches with scores 
+    and brief explanations.
+    
+    FULL ROSTER RANKING: Rank the following artists from most to least 
+    compatible, with a total score and lyrical fit score for each:
+    {formatted_roster}
+    
+    GENRE TAGS: List 3-5 genre/mood tags for this song.
+    
+    PITCH ANGLE: Write 1-2 sentences a songwriter could use when pitching 
+    this song to a label or publisher — capturing what makes it 
+    distinctive.
+    
+    IMPORTANT RULES:
+    - Prioritise lyrical tone, emotional world and thematic resonance 
+      OVER assumed tempo or production style
+    - Do not default to the most commercially famous artist — match on 
+      genuine stylistic alignment
+    - Actively consider UK, European, and global artists, not just 
+      US-centric matches
+    - If the lyrics suggest a niche or emerging scene, say so explicitly
+    - Be honest about confidence levels — a 55% match should reflect 
+      genuine uncertainty, not false confidence
+    
+    Lyrics to analyse:
+    {lyrics}
+    
+    Audio analysis data (if available):
+    {audio_data_str}
 
-        genres_list = data.get("genres", ["General"])
-        genres_str = ", ".join(genres_list)
-        desc = data.get("description", "Artist")
-        artist_bpm = int(data.get("tempo", 0))
-
-        roster_text += f"- {artist} [Genre: {genres_str}] (Avg BPM: {artist_bpm}): {desc}\n"
-        count += 1
-
-    prompt = f"""
-You are an expert Music A and R Executive.
-
-INPUT TRACK DATA:
-- Audio Stats: {audio_info}
-- Lyrics excerpt: "{user_lyrics[:600]}..."
-
-YOUR ROSTER:
-{roster_text}
-
-TASK: Identify the Top 20 Artists that best match the Lyrics and Artist Descriptions. Use Audio Stats only to break ties.
-
-GUIDANCE:
-{audio_hint}
-
-RETURN JSON:
-{{ "candidates": ["Artist 1", "Artist 2"] }}
-"""
+    CRITICAL SYSTEM INSTRUCTION:
+    You MUST return the output strictly as a raw JSON object with no markdown formatting or conversational text. Use this exact schema:
+    {{
+        "matches": [
+            {{
+                "artist": "Artist Name",
+                "final_score": 0.85,
+                "lyrical_score": 0.92,
+                "reason": "2-3 sentence explanation referencing specific artist works, lyrical style, and sound.",
+                "tech_comparison": {{
+                    "user_bpm": 120,
+                    "artist_bpm": 124,
+                    "user_energy": 0.8,
+                    "artist_energy": 0.85
+                }}
+            }}
+        ],
+        "extracted_features": {audio_features},
+        "genre_tags": ["Tag1", "Tag2", "Tag3"],
+        "pitch_angle": "1-2 sentences capturing what makes it distinctive for a pitch.",
+        "market_fit": "Target market (e.g., UK Indie, Global Pop)"
+    }}
+    Ensure 'matches' contains the top 8 ranked artists from the full roster ranking.
+    """
 
     try:
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+        response = anthropic_client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=3000,
+            temperature=0.3,
+            system=system_prompt,
             messages=[
-                {"role": "system", "content": "You are a JSON only music analysis assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.2
+                {"role": "user", "content": "Please analyze the provided lyrics and audio data against the roster according to your instructions and output the JSON."}
+            ]
         )
-        content = response.choices[0].message.content
-        data = json.loads(content)
-        return data.get("candidates", [])
+
+        raw_json_str = response.content[0].text.strip()
+        
+        if raw_json_str.startswith("```json"):
+            raw_json_str = raw_json_str[7:-3].strip()
+        elif raw_json_str.startswith("```"):
+            raw_json_str = raw_json_str[3:-3].strip()
+
+        return json.loads(raw_json_str)
+
     except Exception as e:
-        print(f"OpenAI Error: {e}")
-        return []
+        print(f"Claude API Error: {e}")
+        return {"error": str(e), "matches": []}
