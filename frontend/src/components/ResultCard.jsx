@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FiAward, FiTrendingUp, FiList, FiActivity, FiTag, FiBarChart2 } from 'react-icons/fi';
+import { FiAward, FiTrendingUp, FiList, FiActivity, FiTag, FiBarChart2, FiTarget, FiGlobe } from 'react-icons/fi';
 
 const Wrapper = styled(motion.div)`
   width: 100%;
@@ -22,7 +22,6 @@ const WinnerCard = styled.div`
   position: relative;
   overflow: hidden;
 
-  /* Glowing Accent Line */
   &::after {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
     background: linear-gradient(90deg, #8b5cf6, #2dd4bf);
@@ -50,15 +49,38 @@ const ReasonText = styled.div`
   font-size: 1.15rem; color: #cbd5e1; font-style: italic;
   padding: 25px; background: rgba(255,255,255,0.03);
   border-left: 5px solid #8b5cf6; border-radius: 0 16px 16px 0;
-  line-height: 1.7; margin-bottom: 30px;
+  line-height: 1.7; margin-bottom: 25px;
 `;
 
-// --- New: Tech Specs Grid ---
+// --- NEW: Investor Pitch Section ---
+const PitchStrategyBox = styled.div`
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.1), rgba(45, 212, 191, 0.05));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px; padding: 25px; margin-bottom: 30px;
+  
+  h4 { margin: 0 0 12px; color: #a78bfa; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+  p { margin: 0; color: white; font-size: 1.1rem; line-height: 1.6; font-weight: 500; }
+`;
+
+const TagsRow = styled.div`
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
+`;
+
+const TagChip = styled.span`
+  background: rgba(255, 255, 255, 0.05); color: #e2e8f0;
+  padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex; align-items: center; gap: 6px;
+`;
+
+const MarketFitChip = styled(TagChip)`
+  background: rgba(45, 212, 191, 0.1); color: #5eead4; border-color: rgba(45, 212, 191, 0.3);
+`;
+
+// --- Tech Specs Grid ---
 const TechGrid = styled.div`
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;
-  margin-top: 20px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  padding-top: 25px;
+  margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 25px;
 `;
 
 const TechItem = styled.div`
@@ -78,12 +100,9 @@ const PodiumGrid = styled.div`
 `;
 
 const AltCard = styled.div`
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 20px; padding: 25px;
-  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 20px; padding: 25px; display: flex; align-items: center; justify-content: space-between;
   transition: transform 0.2s;
-  cursor: default;
   &:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.8); border-color: rgba(255,255,255,0.1); }
 `;
 
@@ -91,22 +110,18 @@ const RankCircle = styled.div`
   width: 45px; height: 45px; border-radius: 50%;
   background: ${p => p.rank === 2 ? '#94a3b8' : '#b45309'}; 
   color: white; font-weight: bold; display: flex; align-items: center; justify-content: center;
-  margin-right: 15px; font-size: 1.2rem;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  margin-right: 15px; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 `;
 
 // --- Tracklist Table ---
 const TableCard = styled.div`
   background: rgba(15, 23, 42, 0.6); border-radius: 24px; padding: 30px;
-  border: 1px solid rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px);
 `;
 
 const Row = styled.div`
   display: grid; grid-template-columns: 0.5fr 3fr 1fr 1fr; padding: 18px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  align-items: center;
-  transition: background 0.2s;
+  border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center;
   &:last-child { border: none; }
   &:hover { background: rgba(255,255,255,0.02); }
   
@@ -123,29 +138,22 @@ const TableHeader = styled(Row)`
 `;
 
 export default function ResultCard({ results }) {
-  // FIX: Unpack the new object structure from the backend
-  // Fallback to results directly if for some reason it's already an array
-  const matchArray = results.matches || results;
+  // Extract the specific fields from the new Claude Opus JSON
+  const matchArray = results.matches || [];
+  const pitchAngle = results.pitch_angle || "A unique sonic blend ready for market.";
+  const marketFit = results.market_fit || "Global";
+  const genreTags = results.genre_tags || [];
 
-  // Critical Safety Catch to prevent black screen crashes
-  if (!matchArray || !Array.isArray(matchArray) || matchArray.length === 0) {
-    return null; 
-  }
+  if (!matchArray || matchArray.length === 0) return null; 
 
   const winner = matchArray[0];
   const podium = matchArray.slice(1, 3);
-  const rest = matchArray.slice(3, 8); // Top 8 total
+  const rest = matchArray.slice(3, 8); 
 
-  // Fallback data if technical details are missing
-  const tech = winner.tech_comparison || { user_bpm: 120, artist_bpm: 124, user_energy: 0.8, artist_energy: 0.85 };
+  // Parse scores safely
+  const parseScore = (val) => val <= 1 ? (val * 100).toFixed(0) : parseFloat(val).toFixed(0);
+  const tech = winner.tech_comparison || { user_bpm: "--", artist_bpm: "--", user_energy: 0, artist_energy: 0 };
   
-  // Calculate a "Vibe Match" description based on score
-  const getVibeTag = (score) => {
-    if (score > 0.8) return "Perfect Sync";
-    if (score > 0.6) return "Strong Potential";
-    return "Experimental Fit";
-  };
-
   return (
     <Wrapper initial={{opacity:0, y:50}} animate={{opacity:1, y:0}} transition={{duration:0.6}}>
       
@@ -157,27 +165,31 @@ export default function ResultCard({ results }) {
               <FiAward /> Primary Artist Match
             </h4>
             <WinnerName>{winner.artist}</WinnerName>
-            
-            {/* Genre / Vibe Chips */}
-            <div style={{display:'flex', gap:'10px', marginTop:'15px'}}>
-              <span style={{background:'rgba(139, 92, 246, 0.2)', color:'#c4b5fd', padding:'6px 12px', borderRadius:'20px', fontSize:'0.8rem', fontWeight:600, border:'1px solid rgba(139, 92, 246, 0.3)'}}>
-                 <FiTag style={{marginRight:5, position:'relative', top:1}}/> {getVibeTag(winner.final_score)}
-              </span>
-              <span style={{background:'rgba(45, 212, 191, 0.1)', color:'#5eead4', padding:'6px 12px', borderRadius:'20px', fontSize:'0.8rem', fontWeight:600, border:'1px solid rgba(45, 212, 191, 0.2)'}}>
-                 <FiActivity style={{marginRight:5, position:'relative', top:1}}/> High Confidence
-              </span>
-            </div>
-
           </div>
           <ScoreBadge>
-            <div className="num">{(winner.final_score * 100).toFixed(0)}%</div>
+            <div className="num">{parseScore(winner.final_score)}%</div>
             <div className="txt">Match Score</div>
           </ScoreBadge>
         </HeaderFlex>
 
+        {/* Dynamic Tags */}
+        <TagsRow>
+          <MarketFitChip><FiGlobe /> {marketFit}</MarketFitChip>
+          {genreTags.map((tag, i) => (
+            <TagChip key={i}><FiTag /> {tag}</TagChip>
+          ))}
+        </TagsRow>
+
+        {/* The Claude Opus Reasoning */}
         <ReasonText>"{winner.reason}"</ReasonText>
 
-        {/* New Tech Specs Section */}
+        {/* The New Pitch Angle Block */}
+        <PitchStrategyBox>
+          <h4><FiTarget /> A&R Pitch Strategy</h4>
+          <p>{pitchAngle}</p>
+        </PitchStrategyBox>
+
+        {/* Tech Specs Section */}
         <h4 style={{margin:'0 0 10px', color:'#94a3b8', fontSize:'0.8rem', textTransform:'uppercase', letterSpacing:'1px'}}>
           <FiBarChart2 style={{marginRight:8, position:'relative', top:1}}/> Audio Fingerprint Analysis
         </h4>
@@ -189,12 +201,12 @@ export default function ResultCard({ results }) {
           </TechItem>
           <TechItem>
             <span className="label">Energy</span>
-            <span className="val">{Math.round(tech.artist_energy * 100)}%</span>
+            <span className="val">{tech.artist_energy <= 1 ? Math.round(tech.artist_energy * 100) : tech.artist_energy}%</span>
             <span className="sub">Intensity Match</span>
           </TechItem>
           <TechItem>
             <span className="label">Lyrical Fit</span>
-            <span className="val" style={{color:'#a5b4fc'}}>{(winner.lyrical_score * 100).toFixed(0)}%</span>
+            <span className="val" style={{color:'#a5b4fc'}}>{parseScore(winner.lyrical_score)}%</span>
             <span className="sub">Thematic Resonance</span>
           </TechItem>
         </TechGrid>
@@ -214,7 +226,7 @@ export default function ResultCard({ results }) {
               </div>
             </div>
             <div style={{textAlign:'right'}}>
-              <div style={{color:'#a78bfa', fontWeight:800, fontSize:'1.8rem'}}>{(artist.final_score * 100).toFixed(0)}%</div>
+              <div style={{color:'#a78bfa', fontWeight:800, fontSize:'1.8rem'}}>{parseScore(artist.final_score)}%</div>
               <div style={{color:'#64748b', fontSize:'0.75rem', fontWeight:600}}>MATCH</div>
             </div>
           </AltCard>
@@ -238,8 +250,8 @@ export default function ResultCard({ results }) {
           <Row key={idx}>
             <span className="rank">0{idx + 4}</span>
             <span className="name">{artist.artist}</span>
-            <span className="score">{(artist.final_score * 100).toFixed(1)}%</span>
-            <span className="lyric">{(artist.lyrical_score * 100).toFixed(1)}%</span>
+            <span className="score">{parseScore(artist.final_score)}%</span>
+            <span className="lyric">{parseScore(artist.lyrical_score)}%</span>
           </Row>
         ))}
       </TableCard>
