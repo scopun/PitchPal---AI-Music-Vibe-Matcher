@@ -30,18 +30,22 @@ async def match_artist(
         if not audio_features:
             raise HTTPException(status_code=500, detail="Audio analysis failed")
 
+        # Claude returns the fully formatted dictionary here
         results = await find_best_match(audio_features, lyrics)
 
-        payload = {
-            "success": True,
-            "matches": results,
-            "extracted_features": audio_features
-        }
-
-        if not debug:
-            payload.pop("extracted_features", None)
-
-        return payload
+        # FIX: Ensure we return the flat dictionary directly so React can read it!
+        if isinstance(results, dict):
+            results["success"] = True
+            if debug:
+                results["extracted_features"] = audio_features
+            return results
+        else:
+            # Fallback just in case
+            return {
+                "success": True,
+                "matches": results,
+                "extracted_features": audio_features if debug else None
+            }
 
     except HTTPException:
         raise
