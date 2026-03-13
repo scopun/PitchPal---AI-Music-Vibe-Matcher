@@ -21,6 +21,7 @@ origins = [
     "https://www.pitchpal.co.uk",
     "https://pitch-pal-ai-music-vibe-matcher.vercel.app",
     "https://pitch-pal-ai-music-vibe-matcher-6yz.vercel.app",
+    "https://pitchpal-ai-music-vibe-matcher-e84u.onrender.com",
     "https://pitchpal-ai-music-vibe-matcher.onrender.com"
 ]
 
