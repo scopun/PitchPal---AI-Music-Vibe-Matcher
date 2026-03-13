@@ -2,22 +2,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Typography */
   --font-primary: 'Inter', sans-serif;
   
-  /* Modern Dark Theme Palette */
   --color-bg-dark: #0a0a0a;
   --color-glass-bg: rgba(30, 30, 30, 0.3);
-  --color-glass-border: rgba(255, 255, 255, 0.08); /* Slightly lighter border */
+  --color-glass-border: rgba(255, 255, 255, 0.08); 
   --color-text-main: #ffffff;
   --color-text-muted: #a3a3a3;
   
-  /* Brand Accents */
-  --color-accent-primary: #6366f1; /* Indigo */
+  --color-accent-primary: #6366f1; 
   --color-accent-secondary: #818cf8;
-  --color-accent-glow: rgba(99, 102, 241, 0.5); /* Stronger glow */
+  --color-accent-glow: rgba(99, 102, 241, 0.5); 
 
-  /* Shadows */
   --shadow-glass: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 25px var(--color-accent-glow);
 }
@@ -37,7 +33,6 @@ body {
   box-sizing: border-box;
 }
 
-/* Custom Scrollbar for a premium feel */
 ::-webkit-scrollbar {
   width: 10px;
 }

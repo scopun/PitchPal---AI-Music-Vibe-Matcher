@@ -40,12 +40,6 @@ export default function Hero3D() {
     >
       {isLoading && <LoadingOverlay>LOADING 3D SCENE...</LoadingOverlay>}
       
-      {/* NOTE: This is a placeholder Spline scene (Abstract Shapes).
-         To customize: 
-         1. Go to spline.design 
-         2. Create/Export a scene 
-         3. Copy the "Code Export" URL and paste it below.
-      */}
       <Spline 
         scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode"
         onLoad={() => setIsLoading(false)}
