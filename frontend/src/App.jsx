@@ -9,7 +9,6 @@ import Hero3D from './components/Hero3D';
 import { analyzeTrack } from './services/api';
 import logoImg from './assets/pitchpal_logo.png';
 
-// --- Theme & Layout ---
 const AppContainer = styled.div`
   min-height: 100vh;
   display: flex;
@@ -32,7 +31,6 @@ const Header = styled(motion.div)`
   width: 100%;
 `;
 
-// 👇 UPDATED: BIGGER LOGO SIZE (600px)
 const HeroLogo = styled(motion.img)`
   width: 100%;
   max-width: 600px; /* Increased from 320px to 600px */

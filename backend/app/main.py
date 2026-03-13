@@ -17,6 +17,8 @@ origins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
+    "https://pitchpal.co.uk",
+    "https://www.pitchpal.co.uk",
     "https://pitch-pal-ai-music-vibe-matcher.vercel.app",
     "https://pitch-pal-ai-music-vibe-matcher-6yz.vercel.app",
     "https://pitchpal-ai-music-vibe-matcher.onrender.com"
