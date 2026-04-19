@@ -1,16 +1,26 @@
-spotipy
+# Core
 python-dotenv
-pandas
-numpy
-spotipy
-librosa
-requests
-matplotlib
 fastapi
-uvicorn
+uvicorn[standard]
 python-multipart
-scikit-learn
 pydantic
-scipy
 pydantic-settings
+
+# AI
 anthropic
+openai-whisper
+
+# Audio processing
+librosa==0.10.2
+soundfile
+numpy
+scipy
+
+# Data
+pandas
+
+# ML
+scikit-learn
+
+# Utils
+requests

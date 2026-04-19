@@ -4,7 +4,7 @@ services:
     env: python
     region: oregon
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     root: backend
     envVars:
       - key: ANTHROPIC_API_KEY
