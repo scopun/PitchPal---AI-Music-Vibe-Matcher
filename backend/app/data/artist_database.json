@@ -6,7 +6,8 @@
         ],
         "tempo": 174,
         "energy": 0.92,
-        "description": "High-energy Drum & Bass producer known for melodic hooks and driving basslines."
+        "description": "High-energy Drum & Bass producer known for melodic hooks and driving basslines.",
+        "accepts_external_songs": true
     },
     "A Little Sound": {
         "genres": [
@@ -33,7 +34,8 @@
             0.3560834378004074,
             0.447848841547966
         ],
-        "description": "Eclectic fusion of dreamy synth-pop and indie folk, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Eclectic fusion of dreamy synth-pop and indie folk, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Aaron Rowe": {
         "genres": [
@@ -60,7 +62,8 @@
             0.22570579747358957,
             0.37305451432863873
         ],
-        "description": "Soulful indie-pop artist with a smooth, evocative vocal style that weaves together introspective lyrics and uplifting melodies."
+        "description": "Soulful indie-pop artist with a smooth, evocative vocal style that weaves together introspective lyrics and uplifting melodies.",
+        "accepts_external_songs": true
     },
     "Abigail Liddle": {
         "genres": [
@@ -87,7 +90,8 @@
             0.2689541205763817,
             0.2669870853424072
         ],
-        "description": "Hauntingly ethereal pop with rich, velvety vocals and introspective lyrics that evoke a sense of longing and nostalgia."
+        "description": "Hauntingly ethereal pop with rich, velvety vocals and introspective lyrics that evoke a sense of longing and nostalgia.",
+        "accepts_external_songs": true
     },
     "Absnt Mind": {
         "genres": [
@@ -114,7 +118,8 @@
             0.34397024909655255,
             0.40534817179044086
         ],
-        "description": "Ethereal fusion of ambient soundscapes and introspective lyrics, characterized by haunting vocals that evoke a sense of longing and introspection."
+        "description": "Ethereal fusion of ambient soundscapes and introspective lyrics, characterized by haunting vocals that evoke a sense of longing and introspection.",
+        "accepts_external_songs": true
     },
     "Admt": {
         "genres": [
@@ -141,7 +146,8 @@
             0.23416350285212198,
             0.29621392488479614
         ],
-        "description": "Eclectic fusion of dreamy electronica and introspective pop, characterized by ethereal vocals and emotive lyricism that resonate with vulnerability."
+        "description": "Eclectic fusion of dreamy electronica and introspective pop, characterized by ethereal vocals and emotive lyricism that resonate with vulnerability.",
+        "accepts_external_songs": true
     },
     "Aitch": {
         "genres": [
@@ -168,7 +174,8 @@
             0.24628224968910217,
             0.2611403465270996
         ],
-        "description": "Energetic UK rap infused with catchy hooks and playful wordplay, delivering a confident and charismatic vibe."
+        "description": "Energetic UK rap infused with catchy hooks and playful wordplay, delivering a confident and charismatic vibe.",
+        "accepts_external_songs": true
     },
     "Alessi Rose": {
         "genres": [
@@ -195,7 +202,8 @@
             0.3425283332665761,
             0.32128992180029553
         ],
-        "description": "Dreamy pop sound infused with ethereal vocals and introspective lyrics that evoke a sense of nostalgia and emotional depth."
+        "description": "Dreamy pop sound infused with ethereal vocals and introspective lyrics that evoke a sense of nostalgia and emotional depth.",
+        "accepts_external_songs": true
     },
     "Amie Blu": {
         "genres": [
@@ -224,7 +232,8 @@
             0.3373603920141856,
             0.3989555190006892
         ],
-        "description": "Amie Blu delivers a captivating fusion of dreamy pop and indie folk, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and vulnerability."
+        "description": "Amie Blu delivers a captivating fusion of dreamy pop and indie folk, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and vulnerability.",
+        "accepts_external_songs": true
     },
     "Anne-Marie": {
         "genres": [
@@ -253,7 +262,8 @@
             0.43310747543970746,
             0.4426036874453227
         ],
-        "description": "Catchy pop anthems infused with a mix of R&B and electronic elements, characterized by Anne-Marie's powerful, emotive vocals and relatable, uplifting lyrics."
+        "description": "Catchy pop anthems infused with a mix of R&B and electronic elements, characterized by Anne-Marie's powerful, emotive vocals and relatable, uplifting lyrics.",
+        "accepts_external_songs": true
     },
     "Arrdee": {
         "genres": [
@@ -280,7 +290,8 @@
             0.49935057759284973,
             0.33443716168403625
         ],
-        "description": "Energetic UK rap infused with catchy hooks and a playful, cheeky vocal delivery that captures the highs and lows of youthful exuberance."
+        "description": "Energetic UK rap infused with catchy hooks and a playful, cheeky vocal delivery that captures the highs and lows of youthful exuberance.",
+        "accepts_external_songs": true
     },
     "Ashnikko": {
         "genres": [
@@ -308,7 +319,8 @@
             0.3389839231967926,
             0.34416555364926654
         ],
-        "description": "Edgy and genre-blurring pop infused with punk and electronic elements, characterized by fierce, playful vocals and unapologetic lyrics that explore themes of empowerment and identity."
+        "description": "Edgy and genre-blurring pop infused with punk and electronic elements, characterized by fierce, playful vocals and unapologetic lyrics that explore themes of empowerment and identity.",
+        "accepts_external_songs": true
     },
     "Au/Ra": {
         "genres": [
@@ -335,7 +347,8 @@
             0.4903160830338796,
             0.427984486023585
         ],
-        "description": "Ethereal pop soundscapes fused with hauntingly emotive vocals, creating a dreamy yet introspective atmosphere."
+        "description": "Ethereal pop soundscapes fused with hauntingly emotive vocals, creating a dreamy yet introspective atmosphere.",
+        "accepts_external_songs": true
     },
     "Aurora": {
         "genres": [
@@ -362,7 +375,8 @@
             0.33353009819984436,
             0.29793834686279297
         ],
-        "description": "Ethereal and atmospheric soundscapes infused with hauntingly delicate vocals and introspective, nature-inspired themes."
+        "description": "Ethereal and atmospheric soundscapes infused with hauntingly delicate vocals and introspective, nature-inspired themes.",
+        "accepts_external_songs": false
     },
     "Baby Queen": {
         "genres": [
@@ -389,7 +403,8 @@
             0.324500431617101,
             0.234377051393191
         ],
-        "description": "Eclectic pop with sharp, confessional lyrics and a vibrant, anthemic sound that blends electronic influences with a touch of indie edge."
+        "description": "Eclectic pop with sharp, confessional lyrics and a vibrant, anthemic sound that blends electronic influences with a touch of indie edge.",
+        "accepts_external_songs": true
     },
     "Badger": {
         "genres": [
@@ -416,7 +431,8 @@
             0.4335848540067673,
             0.4116687923669815
         ],
-        "description": "Eclectic fusion of indie pop and electronic beats, characterized by smooth, soulful vocals and introspective lyrics that evoke a sense of nostalgic yearning."
+        "description": "Eclectic fusion of indie pop and electronic beats, characterized by smooth, soulful vocals and introspective lyrics that evoke a sense of nostalgic yearning.",
+        "accepts_external_songs": true
     },
     "Beabadoobee": {
         "genres": [
@@ -443,7 +459,8 @@
             0.3134681433439255,
             0.34849045674006146
         ],
-        "description": "Dreamy indie pop infused with lo-fi aesthetics, characterized by soft, emotive vocals and nostalgic, introspective lyrics."
+        "description": "Dreamy indie pop infused with lo-fi aesthetics, characterized by soft, emotive vocals and nostalgic, introspective lyrics.",
+        "accepts_external_songs": false
     },
     "Beattie": {
         "genres": [
@@ -469,7 +486,8 @@
             0.30490605036417645,
             0.31537262598673504
         ],
-        "description": "Eclectic fusion of indie pop and electronic soundscapes, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Eclectic fusion of indie pop and electronic soundscapes, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Becky Hill": {
         "genres": [
@@ -496,7 +514,8 @@
             0.3974183698495229,
             0.3410170574982961
         ],
-        "description": "Dynamic blend of pop and electronic dance music, characterized by powerful, soulful vocals and an infectious, uplifting energy that evokes both euphoria and introspection."
+        "description": "Dynamic blend of pop and electronic dance music, characterized by powerful, soulful vocals and an infectious, uplifting energy that evokes both euphoria and introspection.",
+        "accepts_external_songs": true
     },
     "Been Stellar": {
         "genres": [
@@ -522,7 +541,8 @@
             0.3354702442884445,
             0.3839961191018422
         ],
-        "description": "Ethereal fusion of dream pop and indie rock, characterized by lush soundscapes, haunting vocals, and introspective lyrics that evoke a sense of nostalgia and wonder."
+        "description": "Ethereal fusion of dream pop and indie rock, characterized by lush soundscapes, haunting vocals, and introspective lyrics that evoke a sense of nostalgia and wonder.",
+        "accepts_external_songs": false
     },
     "Belters Only": {
         "genres": [
@@ -549,7 +569,8 @@
             0.43608162303765613,
             0.3351585765679677
         ],
-        "description": "Upbeat and infectious dance-pop sound characterized by catchy hooks, vibrant grooves, and uplifting vocal performances that radiate joy and positivity."
+        "description": "Upbeat and infectious dance-pop sound characterized by catchy hooks, vibrant grooves, and uplifting vocal performances that radiate joy and positivity.",
+        "accepts_external_songs": true
     },
     "Benjamin Francis Leftwich": {
         "genres": [
@@ -576,7 +597,8 @@
             0.28963610529899597,
             0.47942020495732623
         ],
-        "description": "Hauntingly tender folk-infused soundscapes paired with soft, emotive vocals that evoke a profound sense of introspection and nostalgia."
+        "description": "Hauntingly tender folk-infused soundscapes paired with soft, emotive vocals that evoke a profound sense of introspection and nostalgia.",
+        "accepts_external_songs": false
     },
     "Berwyn": {
         "genres": [
@@ -603,7 +625,8 @@
             0.3563636839389801,
             0.27620844915509224
         ],
-        "description": "Eclectic fusion of introspective hip-hop and soulful melodies, characterized by smooth, emotive vocals and poignant, reflective lyrics."
+        "description": "Eclectic fusion of introspective hip-hop and soulful melodies, characterized by smooth, emotive vocals and poignant, reflective lyrics.",
+        "accepts_external_songs": false
     },
     "Birdy": {
         "genres": [
@@ -630,7 +653,8 @@
             0.22178776065508524,
             0.3089632938305537
         ],
-        "description": "Ethereal pop sound infused with haunting piano melodies and soaring, emotive vocals that convey profound vulnerability and introspection."
+        "description": "Ethereal pop sound infused with haunting piano melodies and soaring, emotive vocals that convey profound vulnerability and introspection.",
+        "accepts_external_songs": true
     },
     "Blackstarkids": {
         "genres": [
@@ -657,7 +681,8 @@
             0.36937783161799115,
             0.4587404827276866
         ],
-        "description": "Eclectic fusion of alternative pop and hip-hop infused with nostalgic 90s vibes, featuring playful vocals and an upbeat, carefree emotional tone."
+        "description": "Eclectic fusion of alternative pop and hip-hop infused with nostalgic 90s vibes, featuring playful vocals and an upbeat, carefree emotional tone.",
+        "accepts_external_songs": true
     },
     "Bleachers": {
         "genres": [
@@ -684,7 +709,8 @@
             0.44130521019299823,
             0.4088033040364583
         ],
-        "description": "'An infectious fusion of synth-pop and indie rock, characterized by anthemic melodies, nostalgic vibes, and emotionally charged vocals that evoke both joy and introspection.'"
+        "description": "'An infectious fusion of synth-pop and indie rock, characterized by anthemic melodies, nostalgic vibes, and emotionally charged vocals that evoke both joy and introspection.'",
+        "accepts_external_songs": true
     },
     "Bloody Civilian": {
         "genres": [
@@ -710,7 +736,8 @@
             0.43449896574020386,
             0.46524842580159503
         ],
-        "description": "Hauntingly ethereal soundscape fused with introspective lyrics and a soulful, resonant vocal style that evokes deep emotional connection."
+        "description": "Hauntingly ethereal soundscape fused with introspective lyrics and a soulful, resonant vocal style that evokes deep emotional connection.",
+        "accepts_external_songs": true
     },
     "Bonnie Kemplay": {
         "genres": [
@@ -736,7 +763,8 @@
             0.35499583184719086,
             0.36413636803627014
         ],
-        "description": "Intimate and ethereal soundscape infused with folk-pop melodies, showcasing Bonnie Kemplay's hauntingly delicate vocals and poignant lyrical storytelling."
+        "description": "Intimate and ethereal soundscape infused with folk-pop melodies, showcasing Bonnie Kemplay's hauntingly delicate vocals and poignant lyrical storytelling.",
+        "accepts_external_songs": true
     },
     "Bou": {
         "genres": [
@@ -763,7 +791,8 @@
             0.27294397354125977,
             0.2831409275531769
         ],
-        "description": "'Soulful fusion of indie pop and electronic elements, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing.'"
+        "description": "'Soulful fusion of indie pop and electronic elements, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing.'",
+        "accepts_external_songs": true
     },
     "Bradley Marshall": {
         "genres": [
@@ -789,7 +818,8 @@
             0.2354860156774521,
             0.34800272683302563
         ],
-        "description": "Eclectic fusion of indie pop and soulful rock, characterized by rich vocals and introspective lyrics that evoke a sense of nostalgia and yearning."
+        "description": "Eclectic fusion of indie pop and soulful rock, characterized by rich vocals and introspective lyrics that evoke a sense of nostalgia and yearning.",
+        "accepts_external_songs": true
     },
     "Bradley Simpson": {
         "genres": [
@@ -815,7 +845,8 @@
             0.3984064608812332,
             0.33341040710608166
         ],
-        "description": "Smooth blend of pop-rock and acoustic ballads, featuring heartfelt vocals that convey raw emotion and introspection."
+        "description": "Smooth blend of pop-rock and acoustic ballads, featuring heartfelt vocals that convey raw emotion and introspection.",
+        "accepts_external_songs": true
     },
     "Bring Me The Horizon": {
         "genres": [
@@ -843,7 +874,8 @@
             0.3687426547209422,
             0.2454733500878016
         ],
-        "description": "Dynamic fusion of metalcore, electronic, and pop elements, characterized by soaring vocals and haunting lyrics that explore themes of despair and resilience."
+        "description": "Dynamic fusion of metalcore, electronic, and pop elements, characterized by soaring vocals and haunting lyrics that explore themes of despair and resilience.",
+        "accepts_external_songs": false
     },
     "Bunt": {
         "genres": [
@@ -870,7 +902,8 @@
             0.3603849212328593,
             0.2983484814564387
         ],
-        "description": "Eclectic fusion of melodic pop and electronic beats, characterized by uplifting rhythms and a warm, emotive vocal delivery."
+        "description": "Eclectic fusion of melodic pop and electronic beats, characterized by uplifting rhythms and a warm, emotive vocal delivery.",
+        "accepts_external_songs": true
     },
     "Caity Baser": {
         "genres": [
@@ -896,7 +929,8 @@
             0.31651003658771515,
             0.3858412603537242
         ],
-        "description": "Catchy pop-infused sound with playful lyrics and a charismatic vocal style that exudes youthful exuberance and relatable emotion."
+        "description": "Catchy pop-infused sound with playful lyrics and a charismatic vocal style that exudes youthful exuberance and relatable emotion.",
+        "accepts_external_songs": true
     },
     "Calum Bowie": {
         "genres": [
@@ -922,7 +956,8 @@
             0.3582421193520228,
             0.2680042584737142
         ],
-        "description": "Calum Bowie delivers an evocative fusion of indie pop and folk, characterized by his soaring vocals and introspective lyrics that resonate with a poignant emotional depth."
+        "description": "Calum Bowie delivers an evocative fusion of indie pop and folk, characterized by his soaring vocals and introspective lyrics that resonate with a poignant emotional depth.",
+        "accepts_external_songs": true
     },
     "Calum Scott": {
         "genres": [
@@ -949,7 +984,8 @@
             0.3292805105447769,
             0.18597505489985147
         ],
-        "description": "Soulful pop balladeer with a hauntingly powerful voice that conveys deep emotion and vulnerability in every heartfelt lyric."
+        "description": "Soulful pop balladeer with a hauntingly powerful voice that conveys deep emotion and vulnerability in every heartfelt lyric.",
+        "accepts_external_songs": true
     },
     "Calvin Harris": {
         "genres": [
@@ -977,7 +1013,8 @@
             0.3632921675841014,
             0.4789045850435893
         ],
-        "description": "'Electro-pop powerhouse celebrated for infectious dance beats, euphoric melodies, and smooth vocal collaborations that ignite a feel-good atmosphere.'"
+        "description": "'Electro-pop powerhouse celebrated for infectious dance beats, euphoric melodies, and smooth vocal collaborations that ignite a feel-good atmosphere.'",
+        "accepts_external_songs": true
     },
     "Camden Cox": {
         "genres": [
@@ -1003,7 +1040,8 @@
             0.27839042743047077,
             0.2977273762226105
         ],
-        "description": "Dynamic pop artist with an empowering blend of electronic beats and emotionally charged vocals that resonate with authenticity and resilience."
+        "description": "Dynamic pop artist with an empowering blend of electronic beats and emotionally charged vocals that resonate with authenticity and resilience.",
+        "accepts_external_songs": true
     },
     "Camelphat": {
         "genres": [
@@ -1030,7 +1068,8 @@
             0.4935978253682454,
             0.37824593484401703
         ],
-        "description": "Dynamic house duo known for infectious grooves, hypnotic basslines, and emotive vocal samples that create an immersive dancefloor experience."
+        "description": "Dynamic house duo known for infectious grooves, hypnotic basslines, and emotive vocal samples that create an immersive dancefloor experience.",
+        "accepts_external_songs": true
     },
     "Camrinwatsin": {
         "genres": [
@@ -1056,7 +1095,8 @@
             0.42313458522160846,
             0.5115041534105936
         ],
-        "description": "'Ethereal blend of indie pop and electronic soundscapes, characterized by haunting vocals and introspective lyrics that evoke a sense of longing and nostalgia.'"
+        "description": "'Ethereal blend of indie pop and electronic soundscapes, characterized by haunting vocals and introspective lyrics that evoke a sense of longing and nostalgia.'",
+        "accepts_external_songs": true
     },
     "Cass\u00f6": {
         "genres": [
@@ -1083,7 +1123,8 @@
             0.497023473183314,
             0.4036426544189453
         ],
-        "description": "Cass\u00f6 delivers a captivating fusion of atmospheric electronic soundscapes and smooth, emotive vocals, evoking a sense of introspective euphoria."
+        "description": "Cass\u00f6 delivers a captivating fusion of atmospheric electronic soundscapes and smooth, emotive vocals, evoking a sense of introspective euphoria.",
+        "accepts_external_songs": true
     },
     "Cat Burns": {
         "genres": [
@@ -1110,7 +1151,8 @@
             0.3546775281429291,
             0.3786622037490209
         ],
-        "description": "Emotionally charged pop infused with soulful R&B elements, showcasing a powerful vocal style that resonates with authenticity and introspection."
+        "description": "Emotionally charged pop infused with soulful R&B elements, showcasing a powerful vocal style that resonates with authenticity and introspection.",
+        "accepts_external_songs": true
     },
     "Catching Cairo": {
         "genres": [
@@ -1137,7 +1179,8 @@
             0.24848118424415588,
             0.3093974192937215
         ],
-        "description": "Eclectic fusion of indie pop and electronic soundscapes, featuring ethereal vocals that convey introspective and emotive narratives."
+        "description": "Eclectic fusion of indie pop and electronic soundscapes, featuring ethereal vocals that convey introspective and emotive narratives.",
+        "accepts_external_songs": true
     },
     "Central Cee": {
         "genres": [
@@ -1163,7 +1206,8 @@
             0.35280874868233997,
             0.41462886333465576
         ],
-        "description": "'Dynamic UK rap artist known for his gritty, introspective lyrics and a seamless fusion of melodic hooks and hard-hitting beats.'"
+        "description": "'Dynamic UK rap artist known for his gritty, introspective lyrics and a seamless fusion of melodic hooks and hard-hitting beats.'",
+        "accepts_external_songs": true
     },
     "Charlieeeee": {
         "genres": [
@@ -1189,7 +1233,8 @@
             0.4273951252301534,
             0.3309030731519063
         ],
-        "description": "Eclectic fusion of dreamy synth-pop and introspective indie with ethereal vocals that evoke a sense of nostalgia and yearning."
+        "description": "Eclectic fusion of dreamy synth-pop and introspective indie with ethereal vocals that evoke a sense of nostalgia and yearning.",
+        "accepts_external_songs": true
     },
     "Charlotte Haining": {
         "genres": [
@@ -1216,7 +1261,8 @@
             0.4406083971261978,
             0.3501545190811157
         ],
-        "description": "Hauntingly ethereal pop infused with lush electronic elements and emotive vocal delivery that captivates with its intimacy."
+        "description": "Hauntingly ethereal pop infused with lush electronic elements and emotive vocal delivery that captivates with its intimacy.",
+        "accepts_external_songs": true
     },
     "Charlotte Plank": {
         "genres": [
@@ -1242,7 +1288,8 @@
             0.3262369781732559,
             0.337480624516805
         ],
-        "description": "Eclectic fusion of indie pop and electronic, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Eclectic fusion of indie pop and electronic, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Chinchilla": {
         "genres": [
@@ -1269,7 +1316,8 @@
             0.12545709311962128,
             0.11806239932775497
         ],
-        "description": "Eclectic fusion of electronic pop and soulful R&B, characterized by powerful vocals and an empowering, introspective emotional landscape."
+        "description": "Eclectic fusion of electronic pop and soulful R&B, characterized by powerful vocals and an empowering, introspective emotional landscape.",
+        "accepts_external_songs": true
     },
     "Chris Lorenzo": {
         "genres": [
@@ -1295,7 +1343,8 @@
             0.40754520893096924,
             0.37492836515108746
         ],
-        "description": "'Dynamic house producer celebrated for infectious beats and pulsating basslines, paired with captivating vocal samples that evoke euphoric energy on the dance floor.'"
+        "description": "'Dynamic house producer celebrated for infectious beats and pulsating basslines, paired with captivating vocal samples that evoke euphoric energy on the dance floor.'",
+        "accepts_external_songs": true
     },
     "Cian Ducrot": {
         "genres": [
@@ -1321,7 +1370,8 @@
             0.20263773202896118,
             0.21809451778729758
         ],
-        "description": "'Intimate pop sound infused with soulful vocals and poignant lyrics that evoke deep emotional resonance.'"
+        "description": "'Intimate pop sound infused with soulful vocals and poignant lyrics that evoke deep emotional resonance.'",
+        "accepts_external_songs": true
     },
     "Clean Bandit": {
         "genres": [
@@ -1348,7 +1398,8 @@
             0.29561135669549304,
             0.36964382231235504
         ],
-        "description": "Eclectic fusion of classical instrumentation and electronic pop, characterized by vibrant melodies, intricate arrangements, and uplifting vocal performances that evoke joy and nostalgia."
+        "description": "Eclectic fusion of classical instrumentation and electronic pop, characterized by vibrant melodies, intricate arrangements, and uplifting vocal performances that evoke joy and nostalgia.",
+        "accepts_external_songs": true
     },
     "Confidence Man": {
         "genres": [
@@ -1374,7 +1425,8 @@
             0.41547786196072894,
             0.4321862856547038
         ],
-        "description": "Eclectic fusion of infectious pop and dance beats, featuring playful, upbeat vocals that radiate joy and confidence."
+        "description": "Eclectic fusion of infectious pop and dance beats, featuring playful, upbeat vocals that radiate joy and confidence.",
+        "accepts_external_songs": true
     },
     "Darren Styles": {
         "genres": [
@@ -1400,7 +1452,8 @@
             0.46188070873419446,
             0.42520586649576825
         ],
-        "description": "Uplifting and high-energy hard dance artist, renowned for euphoric melodies, driving beats, and anthemic vocal hooks that evoke a sense of euphoria and community."
+        "description": "Uplifting and high-energy hard dance artist, renowned for euphoric melodies, driving beats, and anthemic vocal hooks that evoke a sense of euphoria and community.",
+        "accepts_external_songs": true
     },
     "David Guetta": {
         "genres": [
@@ -1428,7 +1481,8 @@
             0.42728888988494873,
             0.31572213768959045
         ],
-        "description": "High-energy electronic music producer celebrated for infectious dance beats and euphoric vocal collaborations that ignite the dance floor."
+        "description": "High-energy electronic music producer celebrated for infectious dance beats and euphoric vocal collaborations that ignite the dance floor.",
+        "accepts_external_songs": true
     },
     "Daydreamers": {
         "genres": [
@@ -1454,7 +1508,8 @@
             0.36611153185367584,
             0.34440918266773224
         ],
-        "description": "Dreamy fusion of indie pop and electronic sounds, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and yearning."
+        "description": "Dreamy fusion of indie pop and electronic sounds, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and yearning.",
+        "accepts_external_songs": true
     },
     "Declan Mckenna": {
         "genres": [
@@ -1481,7 +1536,8 @@
             0.3472607135772705,
             0.4446583191553752
         ],
-        "description": "Energetic indie-pop infused with sharp social commentary, characterized by vibrant melodies and a distinctive, youthful vocal tone."
+        "description": "Energetic indie-pop infused with sharp social commentary, characterized by vibrant melodies and a distinctive, youthful vocal tone.",
+        "accepts_external_songs": false
     },
     "Deed0T": {
         "genres": [
@@ -1507,7 +1563,8 @@
             0.44491372505823773,
             0.40446019172668457
         ],
-        "description": "'Innovative fusion of electronic beats and introspective lyrics, characterized by ethereal vocals and a haunting emotional depth.'"
+        "description": "'Innovative fusion of electronic beats and introspective lyrics, characterized by ethereal vocals and a haunting emotional depth.'",
+        "accepts_external_songs": true
     },
     "Dermot Kennedy": {
         "genres": [
@@ -1534,7 +1591,8 @@
             0.31819867591063183,
             0.38446566462516785
         ],
-        "description": "Emerging from the crossroads of folk-pop and indie rock, Dermot Kennedy captivates with his powerful, emotive vocals and poignant lyrics that resonate with a sense of vulnerability and hope."
+        "description": "Emerging from the crossroads of folk-pop and indie rock, Dermot Kennedy captivates with his powerful, emotive vocals and poignant lyrics that resonate with a sense of vulnerability and hope.",
+        "accepts_external_songs": true
     },
     "Dido": {
         "genres": [
@@ -1561,7 +1619,8 @@
             0.2160486380259196,
             0.24814296762148538
         ],
-        "description": "Hauntingly ethereal pop sound characterized by tender vocals and introspective, emotive lyrics that evoke a sense of bittersweet nostalgia."
+        "description": "Hauntingly ethereal pop sound characterized by tender vocals and introspective, emotive lyrics that evoke a sense of bittersweet nostalgia.",
+        "accepts_external_songs": true
     },
     "Disciples": {
         "genres": [
@@ -1587,7 +1646,8 @@
             0.41804276903470355,
             0.515627533197403
         ],
-        "description": "Melodic house trio with infectious grooves, smooth vocal harmonies, and an uplifting, euphoric vibe perfect for dance floors."
+        "description": "Melodic house trio with infectious grooves, smooth vocal harmonies, and an uplifting, euphoric vibe perfect for dance floors.",
+        "accepts_external_songs": true
     },
     "Disrupta": {
         "genres": [
@@ -1613,7 +1673,8 @@
             0.3479946355024974,
             0.44290027022361755
         ],
-        "description": "Edgy and atmospheric fusion of bass-driven electronic soundscapes and hauntingly emotive vocals, creating a dynamic and immersive listening experience."
+        "description": "Edgy and atmospheric fusion of bass-driven electronic soundscapes and hauntingly emotive vocals, creating a dynamic and immersive listening experience.",
+        "accepts_external_songs": true
     },
     "Dodie": {
         "genres": [
@@ -1639,7 +1700,8 @@
             0.4275856812795003,
             0.26294944683710736
         ],
-        "description": "Intimate and whimsical blend of indie pop and folk, characterized by ethereal vocals and poignant, reflective lyricism."
+        "description": "Intimate and whimsical blend of indie pop and folk, characterized by ethereal vocals and poignant, reflective lyricism.",
+        "accepts_external_songs": false
     },
     "Driia": {
         "genres": [
@@ -1665,7 +1727,8 @@
             0.40482017397880554,
             0.409372016787529
         ],
-        "description": "Eclectic fusion of dreamy synth-pop and introspective indie with ethereal vocals that evoke a sense of vulnerability and nostalgia."
+        "description": "Eclectic fusion of dreamy synth-pop and introspective indie with ethereal vocals that evoke a sense of vulnerability and nostalgia.",
+        "accepts_external_songs": true
     },
     "Dua Lipa": {
         "genres": [
@@ -1692,7 +1755,8 @@
             0.3537059724330902,
             0.48732900619506836
         ],
-        "description": "Contemporary pop sensation with a sultry vocal delivery and an infectious blend of disco, dance, and electronic influences that radiate empowerment and confidence."
+        "description": "Contemporary pop sensation with a sultry vocal delivery and an infectious blend of disco, dance, and electronic influences that radiate empowerment and confidence.",
+        "accepts_external_songs": true
     },
     "Duke Dumont": {
         "genres": [
@@ -1719,7 +1783,8 @@
             0.41504674156506854,
             0.4336014787356059
         ],
-        "description": "Elevating house music with infectious grooves, euphoric melodies, and soulful vocal collaborations that evoke a vibrant, dancefloor-ready energy."
+        "description": "Elevating house music with infectious grooves, euphoric melodies, and soulful vocal collaborations that evoke a vibrant, dancefloor-ready energy.",
+        "accepts_external_songs": true
     },
     "Dylan": {
         "genres": [
@@ -1745,7 +1810,8 @@
             0.3437880873680115,
             0.2943902909755707
         ],
-        "description": "Eclectic fusion of indie pop and alternative rock, characterized by introspective lyrics and a warm, soulful vocal delivery."
+        "description": "Eclectic fusion of indie pop and alternative rock, characterized by introspective lyrics and a warm, soulful vocal delivery.",
+        "accepts_external_songs": true
     },
     "Ed Sheeran": {
         "genres": [
@@ -1772,7 +1838,8 @@
             0.21797139942646027,
             0.20791098972161612
         ],
-        "description": "Intimate and melodic pop-folk sound characterized by heartfelt lyrics, smooth vocals, and a blend of acoustic and electronic elements."
+        "description": "Intimate and melodic pop-folk sound characterized by heartfelt lyrics, smooth vocals, and a blend of acoustic and electronic elements.",
+        "accepts_external_songs": false
     },
     "Ella Henderson": {
         "genres": [
@@ -1800,7 +1867,8 @@
             0.31973062952359516,
             0.336423526207606
         ],
-        "description": "Soulful pop powerhouse with a rich, emotive vocal style that blends soaring melodies and introspective lyrics."
+        "description": "Soulful pop powerhouse with a rich, emotive vocal style that blends soaring melodies and introspective lyrics.",
+        "accepts_external_songs": true
     },
     "Ellie Goulding": {
         "genres": [
@@ -1827,7 +1895,8 @@
             0.39068399866422016,
             0.3019024779399236
         ],
-        "description": "Electropop innovator with ethereal vocals and a cinematic soundscape that conveys both vulnerability and resilience."
+        "description": "Electropop innovator with ethereal vocals and a cinematic soundscape that conveys both vulnerability and resilience.",
+        "accepts_external_songs": true
     },
     "Emily Nash": {
         "genres": [
@@ -1853,7 +1922,8 @@
             0.4567637046178182,
             0.4889286657174428
         ],
-        "description": "Emily Nash delivers a captivating fusion of indie pop and folk, characterized by ethereal vocals and introspective lyrics that evoke a sense of wistful nostalgia."
+        "description": "Emily Nash delivers a captivating fusion of indie pop and folk, characterized by ethereal vocals and introspective lyrics that evoke a sense of wistful nostalgia.",
+        "accepts_external_songs": true
     },
     "Erin Lecount": {
         "genres": [
@@ -1881,7 +1951,8 @@
             0.3427621126174927,
             0.3653729557991028
         ],
-        "description": "Melodic indie-pop artist with ethereal vocals and introspective lyrics that evoke a poignant blend of nostalgia and hope."
+        "description": "Melodic indie-pop artist with ethereal vocals and introspective lyrics that evoke a poignant blend of nostalgia and hope.",
+        "accepts_external_songs": true
     },
     "Etta Marcus": {
         "genres": [
@@ -1907,7 +1978,8 @@
             0.23056912422180176,
             0.30599696437517804
         ],
-        "description": "Etta Marcus delivers a hauntingly ethereal sound that intertwines indie pop and folk elements, characterized by her poignant lyrics and emotive vocal delivery."
+        "description": "Etta Marcus delivers a hauntingly ethereal sound that intertwines indie pop and folk elements, characterized by her poignant lyrics and emotive vocal delivery.",
+        "accepts_external_songs": true
     },
     "Ev": {
         "genres": [
@@ -1933,7 +2005,8 @@
             0.3726789951324463,
             0.5192492753267288
         ],
-        "description": "Ev delivers an ethereal fusion of dream pop and indie electronica, characterized by hauntingly delicate vocals and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Ev delivers an ethereal fusion of dream pop and indie electronica, characterized by hauntingly delicate vocals and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Everyone You Know": {
         "genres": [
@@ -1960,7 +2033,8 @@
             0.5334725975990295,
             0.7281851768493652
         ],
-        "description": "Eclectic fusion of indie pop and electronic sounds, characterized by catchy hooks, conversational vocals, and an introspective yet upbeat emotional tone."
+        "description": "Eclectic fusion of indie pop and electronic sounds, characterized by catchy hooks, conversational vocals, and an introspective yet upbeat emotional tone.",
+        "accepts_external_songs": true
     },
     "Flo": {
         "genres": [
@@ -1986,7 +2060,8 @@
             0.4616923928260803,
             0.36404373745123547
         ],
-        "description": "'Dynamic fusion of pop and R&B with lush harmonies and an empowering, uplifting emotional tone.'"
+        "description": "'Dynamic fusion of pop and R&B with lush harmonies and an empowering, uplifting emotional tone.'",
+        "accepts_external_songs": true
     },
     "Florence Road": {
         "genres": [
@@ -2011,7 +2086,8 @@
             0.4182690183321635,
             0.41915709773699444
         ],
-        "description": "Hauntingly ethereal soundscapes fused with soaring, emotive vocals that evoke a sense of introspective melancholy."
+        "description": "Hauntingly ethereal soundscapes fused with soaring, emotive vocals that evoke a sense of introspective melancholy.",
+        "accepts_external_songs": true
     },
     "Foster": {
         "genres": [
@@ -2036,7 +2112,8 @@
             0.30763429403305054,
             0.3797807991504669
         ],
-        "description": "Innovative fusion of indie pop and electronic elements, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgic yearning."
+        "description": "Innovative fusion of indie pop and electronic elements, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgic yearning.",
+        "accepts_external_songs": true
     },
     "Fred Again": {
         "genres": [
@@ -2066,7 +2143,8 @@
             0.36458168427149457,
             0.35351014137268066
         ],
-        "description": "Innovative electronic artist known for intricate soundscapes, emotive vocal samples, and a captivating blend of uplifting and introspective tones."
+        "description": "Innovative electronic artist known for intricate soundscapes, emotive vocal samples, and a captivating blend of uplifting and introspective tones.",
+        "accepts_external_songs": false
     },
     "George Ezra": {
         "genres": [
@@ -2093,7 +2171,8 @@
             0.3554333945115407,
             0.28234905501206714
         ],
-        "description": "Soulful, deep baritone vocals paired with uplifting folk-pop melodies, creating an infectious and heartfelt sound that resonates with warmth and optimism."
+        "description": "Soulful, deep baritone vocals paired with uplifting folk-pop melodies, creating an infectious and heartfelt sound that resonates with warmth and optimism.",
+        "accepts_external_songs": false
     },
     "Girl Group": {
         "genres": [
@@ -2120,7 +2199,8 @@
             0.5207151174545288,
             0.29181239753961563
         ],
-        "description": "Alternative/indie sound with pop, punk, and electronic elements. Not a typical pop girl band."
+        "description": "Alternative/indie sound with pop, punk, and electronic elements. Not a typical pop girl band.",
+        "accepts_external_songs": true
     },
     "Glass Animals": {
         "genres": [
@@ -2147,7 +2227,8 @@
             0.3262719015280406,
             0.42745324969291687
         ],
-        "description": "Eclectic mix of indie pop and electronic elements infused with dreamy vocals and introspective lyrics that evoke a sense of vibrant nostalgia."
+        "description": "Eclectic mix of indie pop and electronic elements infused with dreamy vocals and introspective lyrics that evoke a sense of vibrant nostalgia.",
+        "accepts_external_songs": false
     },
     "Goddard": {
         "genres": [
@@ -2176,7 +2257,8 @@
             0.489237646261851,
             0.44031115372975665
         ],
-        "description": "Eclectic fusion of dreamy synth-pop and indie rock, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Eclectic fusion of dreamy synth-pop and indie rock, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Good Neighbours": {
         "genres": [
@@ -2202,7 +2284,8 @@
             0.386752188205719,
             0.34428654114405316
         ],
-        "description": "Eclectic fusion of indie pop and folk with warm, soulful vocals that convey introspective and uplifting narratives."
+        "description": "Eclectic fusion of indie pop and folk with warm, soulful vocals that convey introspective and uplifting narratives.",
+        "accepts_external_songs": true
     },
     "Gorgon City": {
         "genres": [
@@ -2229,7 +2312,8 @@
             0.44574301441510517,
             0.469210942586263
         ],
-        "description": "Dynamic house duo fusing deep basslines with euphoric melodies and captivating vocal performances, creating an immersive emotional experience on the dance floor."
+        "description": "Dynamic house duo fusing deep basslines with euphoric melodies and captivating vocal performances, creating an immersive emotional experience on the dance floor.",
+        "accepts_external_songs": true
     },
     "Gregory Fisher": {
         "genres": [
@@ -2254,7 +2338,8 @@
             0.23418524861335754,
             0.32281479239463806
         ],
-        "description": "Smoothly woven indie-pop sound with introspective lyrics and a warm, emotive vocal delivery that resonates deeply."
+        "description": "Smoothly woven indie-pop sound with introspective lyrics and a warm, emotive vocal delivery that resonates deeply.",
+        "accepts_external_songs": true
     },
     "Griff": {
         "genres": [
@@ -2280,7 +2365,8 @@
             0.3038739264011383,
             0.35092554489771527
         ],
-        "description": "Dreamy pop soundscapes infused with emotive lyrics and a captivating, ethereal vocal style that evokes both vulnerability and strength."
+        "description": "Dreamy pop soundscapes infused with emotive lyrics and a captivating, ethereal vocal style that evokes both vulnerability and strength.",
+        "accepts_external_songs": true
     },
     "Henry Moodie": {
         "genres": [
@@ -2306,7 +2392,8 @@
             0.25167446335156757,
             0.3348688930273056
         ],
-        "description": "Dynamic pop-infused sound with introspective lyrics, characterized by smooth vocals and an emotional resonance that captivates listeners."
+        "description": "Dynamic pop-infused sound with introspective lyrics, characterized by smooth vocals and an emotional resonance that captivates listeners.",
+        "accepts_external_songs": true
     },
     "Hitty": {
         "genres": [
@@ -2332,7 +2419,8 @@
             0.3254232853651047,
             0.38644759356975555
         ],
-        "description": "Eclectic fusion of electronic pop and indie rock, characterized by soaring melodies, introspective lyrics, and an ethereal vocal delivery that evokes a sense of longing and nostalgia."
+        "description": "Eclectic fusion of electronic pop and indie rock, characterized by soaring melodies, introspective lyrics, and an ethereal vocal delivery that evokes a sense of longing and nostalgia.",
+        "accepts_external_songs": true
     },
     "Holly Humberstone": {
         "genres": [
@@ -2358,7 +2446,8 @@
             0.27940376351277035,
             0.2630453606446584
         ],
-        "description": "Intimate and introspective, Holly Humberstone combines ethereal pop melodies with poignant lyrics and a haunting vocal style that captures the complexities of young emotions."
+        "description": "Intimate and introspective, Holly Humberstone combines ethereal pop melodies with poignant lyrics and a haunting vocal style that captures the complexities of young emotions.",
+        "accepts_external_songs": true
     },
     "Hvrr": {
         "genres": [
@@ -2384,7 +2473,8 @@
             0.4629000723361969,
             0.4594651162624359
         ],
-        "description": "Eclectic fusion of atmospheric electronic beats and smooth, soulful vocals that evoke a dreamlike, introspective emotional landscape."
+        "description": "Eclectic fusion of atmospheric electronic beats and smooth, soulful vocals that evoke a dreamlike, introspective emotional landscape.",
+        "accepts_external_songs": true
     },
     "Interplanetary Criminal": {
         "genres": [
@@ -2410,7 +2500,8 @@
             0.3278684417406718,
             0.46072884400685626
         ],
-        "description": "Eclectic blend of UK garage and bassline house, characterized by infectious rhythms, vibrant synths, and a playful yet introspective vocal delivery."
+        "description": "Eclectic blend of UK garage and bassline house, characterized by infectious rhythms, vibrant synths, and a playful yet introspective vocal delivery.",
+        "accepts_external_songs": true
     },
     "Issey Cross": {
         "genres": [
@@ -2440,7 +2531,8 @@
             0.3548055092493693,
             0.310232013463974
         ],
-        "description": "Electrifying fusion of pop and electronic elements, characterized by hauntingly smooth vocals and an emotive, introspective lyrical style."
+        "description": "Electrifying fusion of pop and electronic elements, characterized by hauntingly smooth vocals and an emotive, introspective lyrical style.",
+        "accepts_external_songs": true
     },
     "Jack Left": {
         "genres": [
@@ -2466,7 +2558,8 @@
             0.32868504524230957,
             0.33623647689819336
         ],
-        "description": "Eclectic fusion of indie pop and electronic soundscapes, characterized by soulful vocals and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Eclectic fusion of indie pop and electronic soundscapes, characterized by soulful vocals and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Jacob Alon": {
         "genres": [
@@ -2492,7 +2585,8 @@
             0.37287334601084393,
             0.38436780373255414
         ],
-        "description": "Melodic fusion of indie pop and electronic elements, featuring ethereal vocals that convey introspective and emotive storytelling."
+        "description": "Melodic fusion of indie pop and electronic elements, featuring ethereal vocals that convey introspective and emotive storytelling.",
+        "accepts_external_songs": true
     },
     "Jacob Collier": {
         "genres": [
@@ -2520,7 +2614,8 @@
             0.20574339727560678,
             0.20430682599544525
         ],
-        "description": "Genre-defying sonic visionary combining intricate harmonies, virtuosic musicianship, and soulful vocals that evoke a sense of wonder and emotional depth."
+        "description": "Genre-defying sonic visionary combining intricate harmonies, virtuosic musicianship, and soulful vocals that evoke a sense of wonder and emotional depth.",
+        "accepts_external_songs": false
     },
     "Jade": {
         "genres": [
@@ -2546,7 +2641,8 @@
             0.39368035395940143,
             0.3215051591396332
         ],
-        "description": "Ethereal blend of dream pop and electronic sounds, characterized by hauntingly smooth vocals and introspective, emotive lyrics."
+        "description": "Ethereal blend of dream pop and electronic sounds, characterized by hauntingly smooth vocals and introspective, emotive lyrics.",
+        "accepts_external_songs": true
     },
     "Jake Bugg": {
         "genres": [
@@ -2572,7 +2668,8 @@
             0.26037322481473285,
             0.29782166083653766
         ],
-        "description": "Authentic blend of indie rock and folk, characterized by gritty vocals and introspective lyrics that evoke a sense of nostalgia and yearning."
+        "description": "Authentic blend of indie rock and folk, characterized by gritty vocals and introspective lyrics that evoke a sense of nostalgia and yearning.",
+        "accepts_external_songs": false
     },
     "James Arthur": {
         "genres": [
@@ -2599,7 +2696,8 @@
             0.28412028153737384,
             0.3440839995940526
         ],
-        "description": "Soulful pop-rock artist renowned for his powerful, emotive vocals and introspective lyrics that resonate with vulnerability and authenticity."
+        "description": "Soulful pop-rock artist renowned for his powerful, emotive vocals and introspective lyrics that resonate with vulnerability and authenticity.",
+        "accepts_external_songs": true
     },
     "James Blunt": {
         "genres": [
@@ -2628,7 +2726,8 @@
             0.430522878964742,
             0.35017329454421997
         ],
-        "description": "Hauntingly melodic pop-rock with poignant lyrics and a heartfelt vocal delivery that captures vulnerability and introspection."
+        "description": "Hauntingly melodic pop-rock with poignant lyrics and a heartfelt vocal delivery that captures vulnerability and introspection.",
+        "accepts_external_songs": true
     },
     "James Emmanuel": {
         "genres": [
@@ -2654,7 +2753,8 @@
             0.427028348048528,
             0.3285651008288066
         ],
-        "description": "Emotional and introspective, James Emmanuel fuses smooth R&B melodies with lush electronic soundscapes, creating a rich tapestry of vulnerability and groove."
+        "description": "Emotional and introspective, James Emmanuel fuses smooth R&B melodies with lush electronic soundscapes, creating a rich tapestry of vulnerability and groove.",
+        "accepts_external_songs": true
     },
     "James Hype": {
         "genres": [
@@ -2681,7 +2781,8 @@
             0.33669357001781464,
             0.4457717438538869
         ],
-        "description": "High-energy electronic artist renowned for infectious dance beats and dynamic vocal collaborations that ignite euphoric club atmospheres."
+        "description": "High-energy electronic artist renowned for infectious dance beats and dynamic vocal collaborations that ignite euphoric club atmospheres.",
+        "accepts_external_songs": true
     },
     "Jax Jones": {
         "genres": [
@@ -2707,7 +2808,8 @@
             0.3496975153684616,
             0.32336697975794476
         ],
-        "description": "'Dynamic house producer celebrated for infectious dance beats, catchy hooks, and vibrant vocal collaborations that ignite euphoric energy on the dancefloor.'"
+        "description": "'Dynamic house producer celebrated for infectious dance beats, catchy hooks, and vibrant vocal collaborations that ignite euphoric energy on the dancefloor.'",
+        "accepts_external_songs": true
     },
     "Jazzy": {
         "genres": [
@@ -2733,7 +2835,8 @@
             0.3461126387119293,
             0.3924834281206131
         ],
-        "description": "'Smooth fusion of jazz-infused pop and soulful R&B, characterized by sultry vocals and introspective lyrics that evoke a sense of nostalgia and warmth.'"
+        "description": "'Smooth fusion of jazz-infused pop and soulful R&B, characterized by sultry vocals and introspective lyrics that evoke a sense of nostalgia and warmth.'",
+        "accepts_external_songs": true
     },
     "Jeremy Loops": {
         "genres": [
@@ -2760,7 +2863,8 @@
             0.44748050967852276,
             0.305264617005984
         ],
-        "description": "Upbeat fusion of folk, pop, and electronic elements infused with soulful vocals and an infectious, feel-good energy."
+        "description": "Upbeat fusion of folk, pop, and electronic elements infused with soulful vocals and an infectious, feel-good energy.",
+        "accepts_external_songs": true
     },
     "Jess Glynne": {
         "genres": [
@@ -2787,7 +2891,8 @@
             0.30657761295636493,
             0.36414191126823425
         ],
-        "description": "Powerful and soulful pop vocals infused with uplifting melodies and anthemic choruses that resonate with resilience and empowerment."
+        "description": "Powerful and soulful pop vocals infused with uplifting melodies and anthemic choruses that resonate with resilience and empowerment.",
+        "accepts_external_songs": true
     },
     "Jessie Ware": {
         "genres": [
@@ -2814,7 +2919,8 @@
             0.28672559062639874,
             0.32046541571617126
         ],
-        "description": "'Sophisticated blend of soulful pop and electronic elements, characterized by lush vocals and intimate, poignant lyricism.'"
+        "description": "'Sophisticated blend of soulful pop and electronic elements, characterized by lush vocals and intimate, poignant lyricism.'",
+        "accepts_external_songs": true
     },
     "Joel Corry": {
         "genres": [
@@ -2843,7 +2949,8 @@
             0.5084686577320099,
             0.4567968547344208
         ],
-        "description": "Energetic dance-pop producer celebrated for infectious beats, uplifting melodies, and euphoric vocal collaborations that ignite the party atmosphere."
+        "description": "Energetic dance-pop producer celebrated for infectious beats, uplifting melodies, and euphoric vocal collaborations that ignite the party atmosphere.",
+        "accepts_external_songs": true
     },
     "Jonas Blue": {
         "genres": [
@@ -2869,7 +2976,8 @@
             0.30478283762931824,
             0.2185186743736267
         ],
-        "description": "Upbeat and melodic electronic pop sound infused with tropical house elements, featuring captivating vocal performances that evoke a sense of joy and nostalgia."
+        "description": "Upbeat and melodic electronic pop sound infused with tropical house elements, featuring captivating vocal performances that evoke a sense of joy and nostalgia.",
+        "accepts_external_songs": true
     },
     "Jordan Adetunji": {
         "genres": [
@@ -2896,7 +3004,8 @@
             0.41691617170969647,
             0.3878792921702067
         ],
-        "description": "Dynamic fusion of contemporary R&B and pop infused with soulful melodies and introspective lyricism that evokes deep emotional resonance."
+        "description": "Dynamic fusion of contemporary R&B and pop infused with soulful melodies and introspective lyricism that evokes deep emotional resonance.",
+        "accepts_external_songs": true
     },
     "Jordan Rakei": {
         "genres": [
@@ -2923,7 +3032,8 @@
             0.24206199248631796,
             0.39680155118306476
         ],
-        "description": "Soulful fusion of R&B, jazz, and electronic elements, characterized by smooth vocals and introspective, emotive lyrics."
+        "description": "Soulful fusion of R&B, jazz, and electronic elements, characterized by smooth vocals and introspective, emotive lyrics.",
+        "accepts_external_songs": true
     },
     "Jorja Smith": {
         "genres": [
@@ -2950,7 +3060,8 @@
             0.24821460247039795,
             0.3437277128299077
         ],
-        "description": "Soulful and emotive R&B infused with jazz influences, characterized by Jorja Smith's rich, velvety vocals and poignant lyrical storytelling."
+        "description": "Soulful and emotive R&B infused with jazz influences, characterized by Jorja Smith's rich, velvety vocals and poignant lyrical storytelling.",
+        "accepts_external_songs": false
     },
     "Joy Anonymous": {
         "genres": [
@@ -2977,7 +3088,8 @@
             0.4366198281447093,
             0.35862499475479126
         ],
-        "description": "Eclectic fusion of electronic, R&B, and pop with ethereal vocals that evoke a sense of introspective euphoria."
+        "description": "Eclectic fusion of electronic, R&B, and pop with ethereal vocals that evoke a sense of introspective euphoria.",
+        "accepts_external_songs": true
     },
     "Joy Crookes": {
         "genres": [
@@ -3004,7 +3116,8 @@
             0.3879188944896062,
             0.41827428340911865
         ],
-        "description": "Joy Crookes delivers a soulful fusion of R&B and pop, characterized by her rich, emotive vocals and poignant lyrics that explore themes of identity and love."
+        "description": "Joy Crookes delivers a soulful fusion of R&B and pop, characterized by her rich, emotive vocals and poignant lyrics that explore themes of identity and love.",
+        "accepts_external_songs": true
     },
     "Jp Cooper": {
         "genres": [
@@ -3031,7 +3144,8 @@
             0.34614628553390503,
             0.2802352060874303
         ],
-        "description": "Soulful fusion of pop and acoustic influences, characterized by emotive vocals and introspective lyrics that evoke deep emotional resonance."
+        "description": "Soulful fusion of pop and acoustic influences, characterized by emotive vocals and introspective lyrics that evoke deep emotional resonance.",
+        "accepts_external_songs": true
     },
     "Kaeto": {
         "genres": [
@@ -3057,7 +3171,8 @@
             0.3547045737504959,
             0.3523075232903163
         ],
-        "description": "Ethereal fusion of electronic and indie pop, characterized by haunting vocals and introspective lyrics that evoke a dreamy, nostalgic atmosphere."
+        "description": "Ethereal fusion of electronic and indie pop, characterized by haunting vocals and introspective lyrics that evoke a dreamy, nostalgic atmosphere.",
+        "accepts_external_songs": true
     },
     "Kano": {
         "genres": [
@@ -3083,7 +3198,8 @@
             0.3689795583486557,
             0.3842017352581024
         ],
-        "description": "Grime pioneer with a sharp lyrical wit, blending introspective storytelling and powerful delivery over gritty, cinematic beats."
+        "description": "Grime pioneer with a sharp lyrical wit, blending introspective storytelling and powerful delivery over gritty, cinematic beats.",
+        "accepts_external_songs": true
     },
     "Kdyn": {
         "genres": [
@@ -3109,7 +3225,8 @@
             0.4282197455565135,
             0.5091877480347952
         ],
-        "description": "Eclectic fusion of electronic pop and indie rock, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and yearning."
+        "description": "Eclectic fusion of electronic pop and indie rock, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and yearning.",
+        "accepts_external_songs": true
     },
     "Keith Urban": {
         "genres": [
@@ -3135,7 +3252,8 @@
             0.27999552090962726,
             0.3997039993604024
         ],
-        "description": "Dynamic country-rock fusion with soulful vocals and heartfelt storytelling that resonates with both joy and introspection."
+        "description": "Dynamic country-rock fusion with soulful vocals and heartfelt storytelling that resonates with both joy and introspection.",
+        "accepts_external_songs": true
     },
     "Kerr Mercer": {
         "genres": [
@@ -3161,7 +3279,8 @@
             0.15964265912771225,
             0.224742591381073
         ],
-        "description": "Kerr Mercer delivers a captivating fusion of indie pop and electronic elements, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Kerr Mercer delivers a captivating fusion of indie pop and electronic elements, characterized by ethereal vocals and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Kidwild": {
         "genres": [
@@ -3191,7 +3310,8 @@
             0.41522597273190814,
             0.3613059123357137
         ],
-        "description": "Eclectic fusion of indie pop and electronic soundscapes, characterized by shimmering synths, emotive vocals, and introspective lyrics that evoke a sense of nostalgia and longing."
+        "description": "Eclectic fusion of indie pop and electronic soundscapes, characterized by shimmering synths, emotive vocals, and introspective lyrics that evoke a sense of nostalgia and longing.",
+        "accepts_external_songs": true
     },
     "Kiki Wera": {
         "genres": [
@@ -3217,7 +3337,8 @@
             0.2680616577466329,
             0.2625943496823311
         ],
-        "description": "'Ethereal fusion of dream pop and electronic soundscapes, characterized by haunting vocals and introspective lyrics that evoke a sense of longing and nostalgia.'"
+        "description": "'Ethereal fusion of dream pop and electronic soundscapes, characterized by haunting vocals and introspective lyrics that evoke a sense of longing and nostalgia.'",
+        "accepts_external_songs": true
     },
     "Kingfishr": {
         "genres": [
@@ -3244,7 +3365,8 @@
             0.21572386225064596,
             0.2743559132019679
         ],
-        "description": "'Dynamic fusion of indie rock and electronic elements, showcasing soaring vocals and introspective lyrics that evoke a sense of yearning and resilience.'"
+        "description": "'Dynamic fusion of indie rock and electronic elements, showcasing soaring vocals and introspective lyrics that evoke a sense of yearning and resilience.'",
+        "accepts_external_songs": true
     },
     "Kojey Radical": {
         "genres": [
@@ -3272,7 +3394,8 @@
             0.484626442193985,
             0.3961283266544342
         ],
-        "description": "Innovative fusion of hip-hop, spoken word, and soulful melodies, characterized by introspective lyricism and a captivating, emotive vocal delivery."
+        "description": "Innovative fusion of hip-hop, spoken word, and soulful melodies, characterized by introspective lyricism and a captivating, emotive vocal delivery.",
+        "accepts_external_songs": false
     },
     "Ksi": {
         "genres": [
@@ -3302,7 +3425,8 @@
             0.38744887709617615,
             0.41859789689381915
         ],
-        "description": "Energetic fusion of hip-hop and grime, characterized by sharp lyrics, charismatic delivery, and an infectious blend of humor and introspection."
+        "description": "Energetic fusion of hip-hop and grime, characterized by sharp lyrics, charismatic delivery, and an infectious blend of humor and introspection.",
+        "accepts_external_songs": true
     },
     "Kwengface": {
         "genres": [
@@ -3327,7 +3451,8 @@
             0.30956509709358215,
             0.36840909719467163
         ],
-        "description": "Grimy UK drill artist with a gritty vocal delivery and introspective lyrics that capture the struggles and realities of urban life."
+        "description": "Grimy UK drill artist with a gritty vocal delivery and introspective lyrics that capture the struggles and realities of urban life.",
+        "accepts_external_songs": true
     },
     "Last Dinner Party": {
         "genres": [
@@ -3353,7 +3478,8 @@
             0.32799463470776874,
             0.3729499081770579
         ],
-        "description": "Eclectic fusion of indie rock and vintage pop, characterized by lush harmonies, infectious melodies, and a nostalgic yet vibrant emotional resonance."
+        "description": "Eclectic fusion of indie rock and vintage pop, characterized by lush harmonies, infectious melodies, and a nostalgic yet vibrant emotional resonance.",
+        "accepts_external_songs": false
     },
     "Lava La Rue": {
         "genres": [
@@ -3380,7 +3506,8 @@
             0.4627847572167714,
             0.4953409632047017
         ],
-        "description": "Eclectic fusion of alternative R&B and hip-hop, characterized by smooth, emotive vocals and introspective, socially conscious lyrics."
+        "description": "Eclectic fusion of alternative R&B and hip-hop, characterized by smooth, emotive vocals and introspective, socially conscious lyrics.",
+        "accepts_external_songs": false
     },
     "Leigh-Anne": {
         "genres": [
@@ -3406,7 +3533,8 @@
             0.38353874286015827,
             0.3300808370113373
         ],
-        "description": "Soulful pop artist with a captivating vocal range, blending infectious melodies and empowering lyrics to evoke a vibrant, uplifting emotional experience."
+        "description": "Soulful pop artist with a captivating vocal range, blending infectious melodies and empowering lyrics to evoke a vibrant, uplifting emotional experience.",
+        "accepts_external_songs": true
     },
     "Lewis Capaldi": {
         "genres": [
@@ -3433,7 +3561,8 @@
             0.2195685257514318,
             0.20763152341047922
         ],
-        "description": "Emotionally charged pop ballads characterized by powerful, soulful vocals and poignant lyrics that explore themes of love and vulnerability."
+        "description": "Emotionally charged pop ballads characterized by powerful, soulful vocals and poignant lyrics that explore themes of love and vulnerability.",
+        "accepts_external_songs": true
     },
     "Lewis Fitzgerald": {
         "genres": [
@@ -3459,7 +3588,8 @@
             0.3430043359597524,
             0.24181394775708517
         ],
-        "description": "'Soulful indie-pop artist with smooth, emotive vocals that weave introspective lyrics into catchy melodies, creating an uplifting yet contemplative atmosphere.'"
+        "description": "'Soulful indie-pop artist with smooth, emotive vocals that weave introspective lyrics into catchy melodies, creating an uplifting yet contemplative atmosphere.'",
+        "accepts_external_songs": true
     },
     "Lf System": {
         "genres": [
@@ -3485,7 +3615,8 @@
             0.4642474253972371,
             0.3506428400675456
         ],
-        "description": "Eclectic fusion of upbeat house grooves and infectious melodies, characterized by smooth vocal delivery and an uplifting, euphoric vibe."
+        "description": "Eclectic fusion of upbeat house grooves and infectious melodies, characterized by smooth vocal delivery and an uplifting, euphoric vibe.",
+        "accepts_external_songs": true
     },
     "Lily Allen": {
         "genres": [
@@ -3512,7 +3643,8 @@
             0.2239587903022766,
             0.21013526618480682
         ],
-        "description": "Eclectic pop with sharp, witty lyricism, characterized by a blend of playful melodies and candid, often bittersweet emotional undertones."
+        "description": "Eclectic pop with sharp, witty lyricism, characterized by a blend of playful melodies and candid, often bittersweet emotional undertones.",
+        "accepts_external_songs": true
     },
     "Lola Young": {
         "genres": [
@@ -3538,7 +3670,8 @@
             0.20486933241287866,
             0.3284781351685524
         ],
-        "description": "Soulful pop with rich, emotive vocals and introspective lyrics that blend vulnerability and empowerment."
+        "description": "Soulful pop with rich, emotive vocals and introspective lyrics that blend vulnerability and empowerment.",
+        "accepts_external_songs": true
     },
     "London Grammar": {
         "genres": [
@@ -3565,7 +3698,8 @@
             0.27728229264418286,
             0.2568017194668452
         ],
-        "description": "Ethereal blend of atmospheric pop and melancholic indie, showcasing hauntingly delicate vocals that convey deep emotional resonance."
+        "description": "Ethereal blend of atmospheric pop and melancholic indie, showcasing hauntingly delicate vocals that convey deep emotional resonance.",
+        "accepts_external_songs": false
     },
     "Loreen": {
         "genres": [
@@ -3592,7 +3726,8 @@
             0.31947850187619525,
             0.3783109684785207
         ],
-        "description": "Powerful and emotive pop anthems infused with electronic elements, showcasing Loreen's soaring vocals and passionate delivery."
+        "description": "Powerful and emotive pop anthems infused with electronic elements, showcasing Loreen's soaring vocals and passionate delivery.",
+        "accepts_external_songs": true
     },
     "Louis Tomlinson": {
         "genres": [
@@ -3618,7 +3753,8 @@
             0.2785702496767044,
             0.3819020092487335
         ],
-        "description": "Authentic pop-rock sound infused with poignant lyrics and a gritty vocal delivery that captures vulnerability and resilience."
+        "description": "Authentic pop-rock sound infused with poignant lyrics and a gritty vocal delivery that captures vulnerability and resilience.",
+        "accepts_external_songs": true
     },
     "Luude": {
         "genres": [
@@ -3645,7 +3781,8 @@
             0.43691253662109375,
             0.3649889628092448
         ],
-        "description": "Dynamic and infectious drum and bass artist known for his captivating beats, energetic grooves, and uplifting melodies that evoke an exhilarating sense of joy and freedom."
+        "description": "Dynamic and infectious drum and bass artist known for his captivating beats, energetic grooves, and uplifting melodies that evoke an exhilarating sense of joy and freedom.",
+        "accepts_external_songs": true
     },
     "Mabel": {
         "genres": [
@@ -3671,7 +3808,8 @@
             0.3580123484134674,
             0.4698827664057414
         ],
-        "description": "Electro-pop sensation with sultry vocals and an infectious blend of catchy hooks and empowering themes."
+        "description": "Electro-pop sensation with sultry vocals and an infectious blend of catchy hooks and empowering themes.",
+        "accepts_external_songs": true
     },
     "Mackenzy Mackay": {
         "genres": [
@@ -3697,7 +3835,8 @@
             0.3127993543942769,
             0.35773375630378723
         ],
-        "description": "Eclectic fusion of indie pop and electronic beats, featuring ethereal vocals that evoke a sense of nostalgia and introspection."
+        "description": "Eclectic fusion of indie pop and electronic beats, featuring ethereal vocals that evoke a sense of nostalgia and introspection.",
+        "accepts_external_songs": true
     },
     "Mae Stephens": {
         "genres": [
@@ -3723,7 +3862,8 @@
             0.4263417422771454,
             0.35180362065633136
         ],
-        "description": "Catchy pop anthems infused with playful lyrics and a vibrant, upbeat energy that showcases Mae Stephens' bright vocal delivery and infectious charm."
+        "description": "Catchy pop anthems infused with playful lyrics and a vibrant, upbeat energy that showcases Mae Stephens' bright vocal delivery and infectious charm.",
+        "accepts_external_songs": true
     },
     "Mahalia": {
         "genres": [
@@ -3750,7 +3890,8 @@
             0.5081570347150167,
             0.37995171546936035
         ],
-        "description": "Soulful R&B artist Mahalia weaves smooth, emotive vocals with introspective lyrics, creating an intimate and relatable sound that resonates deeply with listeners."
+        "description": "Soulful R&B artist Mahalia weaves smooth, emotive vocals with introspective lyrics, creating an intimate and relatable sound that resonates deeply with listeners.",
+        "accepts_external_songs": true
     },
     "Maisie Peters": {
         "genres": [
@@ -3776,7 +3917,8 @@
             0.30878575642903644,
             0.3130940993626912
         ],
-        "description": "'Captivating fusion of pop and indie with poignant lyrics and an expressive vocal style that evokes both vulnerability and empowerment.'"
+        "description": "'Captivating fusion of pop and indie with poignant lyrics and an expressive vocal style that evokes both vulnerability and empowerment.'",
+        "accepts_external_songs": true
     },
     "Marina": {
         "tempo": 129.2,
@@ -3803,7 +3945,8 @@
             "Synth-Pop",
             "Indie Pop",
             "New Wave"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Marti Perramon": {
         "tempo": 131.35,
@@ -3830,7 +3973,8 @@
             "Indie Pop",
             "Electronic",
             "Lo-Fi"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Mathilda Homer": {
         "tempo": 132.32,
@@ -3857,7 +4001,8 @@
             "Indie Folk",
             "Jazz-Pop",
             "Neo-Soul"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Meduza": {
         "tempo": 124.0,
@@ -3884,7 +4029,8 @@
             "Deep House",
             "Melodic House",
             "EDM"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Meek": {
         "tempo": 172.27,
@@ -3910,7 +4056,8 @@
         "genres": [
             "Hip-Hop",
             "Rap"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Mette": {
         "tempo": 134.0,
@@ -3937,7 +4084,8 @@
             "Synth-Pop",
             "Dance",
             "Funk-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Mimi Webb": {
         "tempo": 131.03,
@@ -3964,7 +4112,8 @@
             "Pop",
             "Power Pop",
             "Singer-Songwriter"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Mk": {
         "tempo": 125.1,
@@ -3991,7 +4140,8 @@
             "House",
             "Deep House",
             "Dance"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Muireann Bradley": {
         "tempo": 118.9,
@@ -4018,7 +4168,8 @@
             "Indie Folk",
             "Blues",
             "Acoustic"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Myles Smith": {
         "tempo": 117.62,
@@ -4045,7 +4196,8 @@
             "Indie Pop",
             "Soul",
             "Folk-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Nathan Dawe": {
         "tempo": 125.1,
@@ -4072,7 +4224,8 @@
             "Dance-Pop",
             "House",
             "UK Garage"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Nectar Wood": {
         "tempo": 133.62,
@@ -4099,7 +4252,8 @@
             "Ambient",
             "Indie",
             "Experimental"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Nell Mescal": {
         "tempo": 120.13,
@@ -4126,7 +4280,8 @@
             "Indie Pop",
             "Alt-Pop",
             "Folk"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Newdad": {
         "tempo": 121.37,
@@ -4153,7 +4308,8 @@
             "Indie Rock",
             "Shoegaze",
             "Dream Pop"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Nia Smith": {
         "tempo": 126.32,
@@ -4180,7 +4336,8 @@
             "R&B",
             "Soul",
             "Contemporary R&B"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Niall Horan": {
         "tempo": 102.05,
@@ -4207,7 +4364,8 @@
             "Pop",
             "Folk-Pop",
             "Soft Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "No Rome": {
         "tempo": 101.6,
@@ -4234,7 +4392,8 @@
             "Dream Pop",
             "Indie Rock",
             "R&B"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Notion": {
         "tempo": 136.0,
@@ -4261,7 +4420,8 @@
             "Alt-Pop",
             "Electronic",
             "Indie"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Oliver Heldens": {
         "tempo": 123.05,
@@ -4288,7 +4448,8 @@
             "Future House",
             "House",
             "EDM"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Olivia Dean": {
         "tempo": 128.02,
@@ -4315,7 +4476,8 @@
             "Soul",
             "Pop",
             "R&B"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Olly Alexander": {
         "tempo": 114.14,
@@ -4342,7 +4504,8 @@
             "Pop",
             "Synth-Pop",
             "Queer Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Olly Murs": {
         "tempo": 101.12,
@@ -4368,7 +4531,8 @@
         "genres": [
             "Pop",
             "Dance-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Only The Poets": {
         "tempo": 132.34,
@@ -4394,7 +4558,8 @@
         "genres": [
             "Pop-Rock",
             "Indie"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Pa Salieu": {
         "tempo": 104.03,
@@ -4421,7 +4586,8 @@
             "UK Rap",
             "Afrobeats",
             "Grime"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Paige Cavell": {
         "tempo": 125.1,
@@ -4447,7 +4613,8 @@
         "genres": [
             "Indie Pop",
             "Alt-Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Pale Waves": {
         "tempo": 110.93,
@@ -4474,7 +4641,8 @@
             "Indie Pop",
             "Goth-Pop",
             "Synth-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Paloma Faith": {
         "tempo": 105.73,
@@ -4501,7 +4669,8 @@
             "Pop",
             "Soul",
             "Jazz-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Paul Woolford": {
         "tempo": 123.05,
@@ -4528,7 +4697,8 @@
             "House",
             "Piano House",
             "Techno"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Perrie": {
         "tempo": 127.23,
@@ -4554,7 +4724,8 @@
         "genres": [
             "Pop",
             "Dream Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Pretty Sick": {
         "tempo": 115.98,
@@ -4581,7 +4752,8 @@
             "Grunge",
             "Alt-Rock",
             "Indie"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Prinz": {
         "tempo": 143.55,
@@ -4608,7 +4780,8 @@
             "Electronic",
             "Indie Pop",
             "Rap"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Priya Ragu": {
         "tempo": 142.75,
@@ -4635,7 +4808,8 @@
             "R&B",
             "Pop",
             "Fusion"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Rachel Chinouriri": {
         "tempo": 135.15,
@@ -4662,7 +4836,8 @@
             "Indie Pop",
             "Soul",
             "Alt-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Rag\u2019N\u2019Bone Man": {
         "tempo": 123.05,
@@ -4689,7 +4864,8 @@
             "Soul",
             "Blues",
             "Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Regard": {
         "tempo": 119.32,
@@ -4716,7 +4892,8 @@
             "Deep House",
             "Pop",
             "Dance"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Rhys Lewis": {
         "tempo": 139.13,
@@ -4743,7 +4920,8 @@
             "Pop",
             "Soul",
             "Singer-Songwriter"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Rina Sawayama": {
         "tempo": 112.76,
@@ -4771,7 +4949,8 @@
             "Rock",
             "Nu-Metal",
             "R&B"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Ronan Keating": {
         "tempo": 136.38,
@@ -4797,7 +4976,8 @@
         "genres": [
             "Pop",
             "Ballad"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Roro": {
         "tempo": 136.38,
@@ -4824,7 +5004,8 @@
             "Synth-Pop",
             "Indie",
             "Electronic"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Royal Blood": {
         "tempo": 116.4,
@@ -4851,7 +5032,8 @@
             "Rock",
             "Garage Rock",
             "Hard Rock"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Rudimental": {
         "tempo": 110.93,
@@ -4878,7 +5060,8 @@
             "Drum & Bass",
             "Pop",
             "Soul"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Ruti": {
         "tempo": 128.12,
@@ -4905,7 +5088,8 @@
             "Pop",
             "Soul",
             "Jazz"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Saga Faye": {
         "tempo": 112.79,
@@ -4932,7 +5116,8 @@
             "Pop",
             "R&B",
             "Indie"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sam Fender": {
         "tempo": 132.14,
@@ -4959,7 +5144,8 @@
             "Indie Rock",
             "Rock",
             "Alternative"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Sam Ryder": {
         "tempo": 118.57,
@@ -4985,7 +5171,8 @@
         "genres": [
             "Pop-Rock",
             "Eurovision"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sam Smith": {
         "tempo": 135.86,
@@ -5012,7 +5199,8 @@
             "Pop",
             "Soul",
             "R&B"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sam Tompkins": {
         "tempo": 123.64,
@@ -5039,7 +5227,8 @@
             "Pop",
             "Soul",
             "Acoustic"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sammy Virji": {
         "tempo": 115.83,
@@ -5066,7 +5255,8 @@
             "UK Garage",
             "Bassline",
             "Electronic"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Say Now": {
         "tempo": 120.37,
@@ -5092,7 +5282,8 @@
         "genres": [
             "Indie Pop",
             "Electronic"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Saya Gray": {
         "tempo": 123.95,
@@ -5119,7 +5310,8 @@
             "Ambient Pop",
             "Experimental",
             "Indie"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Schak": {
         "tempo": 136.25,
@@ -5146,7 +5338,8 @@
             "House",
             "Electronic",
             "Jump Up"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sebastian Schub": {
         "tempo": 119.32,
@@ -5172,7 +5365,8 @@
         "genres": [
             "Indie Pop",
             "Electronic"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sekou": {
         "tempo": 112.88,
@@ -5199,7 +5393,8 @@
             "R&B",
             "Pop",
             "Soul"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sg Lewis": {
         "tempo": 110.37,
@@ -5226,7 +5421,8 @@
             "Electronic",
             "Disco",
             "House"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sigala": {
         "tempo": 123.05,
@@ -5253,7 +5449,8 @@
             "Dance-Pop",
             "House",
             "Tropical House"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sigrid": {
         "tempo": 108.17,
@@ -5279,7 +5476,8 @@
         "genres": [
             "Pop",
             "Synth-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Silva Bumpa": {
         "tempo": 108.0,
@@ -5306,7 +5504,8 @@
             "Electronic",
             "R&B",
             "Garage"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Silver Gore": {
         "tempo": 114.19,
@@ -5333,7 +5532,8 @@
             "Darkwave",
             "Synth-Pop",
             "Goth"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Skye Newman": {
         "tempo": 140.79,
@@ -5359,7 +5559,8 @@
         "genres": [
             "Indie Pop",
             "Dream Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "South Arcade": {
         "tempo": 119.32,
@@ -5386,7 +5587,8 @@
             "Synth-Pop",
             "Nostalgic",
             "Indie"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sports Team": {
         "tempo": 125.5,
@@ -5412,7 +5614,8 @@
         "genres": [
             "Indie Rock",
             "Alt-Rock"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Stormzy": {
         "tempo": 126.73,
@@ -5439,7 +5642,8 @@
             "Grime",
             "Hip-Hop",
             "Gospel"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Sub Focus": {
         "tempo": 141.91,
@@ -5466,7 +5670,8 @@
             "Drum & Bass",
             "Electronic",
             "Dance"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Switch Disco": {
         "tempo": 125.1,
@@ -5493,7 +5698,8 @@
             "Dance-Pop",
             "House",
             "Mashup"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Take That": {
         "tempo": 161.5,
@@ -5519,7 +5725,8 @@
         "genres": [
             "Pop",
             "Pop-Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Teddy Swims": {
         "tempo": 134.75,
@@ -5547,7 +5754,8 @@
             "Soul",
             "Pop",
             "Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "The 1975": {
         "tempo": 106.04,
@@ -5574,7 +5782,8 @@
             "Indie Pop",
             "Alt-Rock",
             "Pop-Rock"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "The Blessed Madonna": {
         "tempo": 125.1,
@@ -5600,7 +5809,8 @@
         "genres": [
             "House",
             "Disco"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "The Japanese House": {
         "tempo": 106.61,
@@ -5627,7 +5837,8 @@
             "Dream Pop",
             "Indie",
             "Synth-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Tion Wayne": {
         "tempo": 120.23,
@@ -5653,7 +5864,8 @@
         "genres": [
             "UK Drill",
             "Afro-Swing"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Ti\u00ebsto": {
         "tempo": 119.32,
@@ -5681,7 +5893,8 @@
             "Big Room",
             "Trance",
             "House"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Tom Grennan": {
         "tempo": 129.62,
@@ -5708,7 +5921,8 @@
             "Indie Pop",
             "Soul",
             "Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Tom Walker": {
         "tempo": 111.98,
@@ -5735,7 +5949,8 @@
             "Folk-Pop",
             "Indie Folk",
             "Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Unknown T": {
         "tempo": 129.82,
@@ -5761,7 +5976,8 @@
         "genres": [
             "UK Drill",
             "Grime"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Venbee": {
         "tempo": 119.99,
@@ -5787,7 +6003,8 @@
         "genres": [
             "Drum & Bass",
             "Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Victor Ray": {
         "tempo": 135.26,
@@ -5813,7 +6030,8 @@
         "genres": [
             "Indie Pop",
             "Soul"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Westislonely": {
         "tempo": 126.86,
@@ -5839,7 +6057,8 @@
         "genres": [
             "Lo-Fi",
             "Indie Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Westside Cowboy": {
         "tempo": 144.42,
@@ -5865,7 +6084,8 @@
         "genres": [
             "Country",
             "Rock"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Wolf Alice": {
         "tempo": 119.63,
@@ -5892,7 +6112,8 @@
             "Alt-Rock",
             "Grunge",
             "Indie Rock"
-        ]
+        ],
+        "accepts_external_songs": false
     },
     "Yungblud": {
         "tempo": 155.17,
@@ -5919,7 +6140,8 @@
             "Alt-Rock",
             "Pop-Punk",
             "Emo"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Zara Larsson": {
         "tempo": 131.65,
@@ -5945,7 +6167,8 @@
         "genres": [
             "Pop",
             "Dance-Pop"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Zoe Wees": {
         "tempo": 127.17,
@@ -5971,7 +6194,8 @@
         "genres": [
             "Pop",
             "Soul"
-        ]
+        ],
+        "accepts_external_songs": true
     },
     "Zulan": {
         "tempo": 133.73,
@@ -5997,6 +6221,7 @@
         "genres": [
             "Synth-Pop",
             "Indie"
-        ]
+        ],
+        "accepts_external_songs": true
     }
 }
