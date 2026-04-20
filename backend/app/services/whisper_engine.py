@@ -1,13 +1,8 @@
-import os
 import whisper
-import tempfile
-from pathlib import Path
 
-# Load model once at module level (base model = fast + accurate enough for demos)
 _model = None
 
 def get_whisper_model():
-    """Lazy load whisper model — loads once, reuses after."""
     global _model
     if _model is None:
         print("🎙️ Loading Whisper model...")
@@ -18,29 +13,31 @@ def get_whisper_model():
 
 def extract_lyrics_from_audio(audio_path: str) -> dict:
     """
-    Extract lyrics/spoken text from an audio file using Whisper.
-    Returns a dict with 'lyrics' and 'detected_language'.
-    Falls back gracefully if extraction fails.
+    Extract lyrics from audio using Whisper.
+    If extracted text is too short (instrumental), returns empty lyrics
+    so the system can fall back to audio features description.
     """
     try:
         model = get_whisper_model()
 
         result = model.transcribe(
             audio_path,
-            fp16=False,          # CPU safe
-            language=None,       # Auto-detect language
+            fp16=False,
+            language=None,
             verbose=False
         )
 
         transcript = result.get("text", "").strip()
         language = result.get("language", "en")
 
-        if not transcript:
+        # If less than 10 words extracted — likely instrumental, treat as empty
+        word_count = len(transcript.split())
+        if word_count < 10:
             return {
                 "lyrics": "",
                 "detected_language": language,
                 "extraction_success": False,
-                "message": "No speech detected in audio"
+                "message": "Instrumental or insufficient vocals detected"
             }
 
         return {
