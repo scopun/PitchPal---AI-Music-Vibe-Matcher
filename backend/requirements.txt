@@ -1,26 +1,14 @@
-# Core
 python-dotenv
 fastapi
 uvicorn[standard]
 python-multipart
 pydantic
 pydantic-settings
-
-# AI
 anthropic
-openai-whisper
-
-# Audio processing
 librosa==0.10.2
 soundfile
 numpy
 scipy
-
-# Data
-pandas
-
-# ML
 scikit-learn
-
-# Utils
+pandas
 requests
