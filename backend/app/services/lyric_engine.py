@@ -8,8 +8,61 @@ load_dotenv()
 
 anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
+_WHO_LOOKING = None
+
+def get_who_looking():
+    global _WHO_LOOKING
+    if _WHO_LOOKING is None:
+        try:
+            db_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'who_is_looking.json')
+            with open(db_path, 'r') as f:
+                _WHO_LOOKING = json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load who_is_looking.json: {e}")
+            _WHO_LOOKING = {"actively_looking": [], "not_available": [], "deceased": []}
+    return _WHO_LOOKING
+
+
+def is_lyrics_meaningful(lyrics: str) -> bool:
+    """Check if extracted audio lyrics are meaningful (not garbled)."""
+    if not lyrics or len(lyrics.strip()) < 20:
+        return False
+    words = lyrics.split()
+    if len(words) < 15:
+        return False
+    # Too many question marks = garbled AssemblyAI output
+    question_marks = lyrics.count('?')
+    if question_marks > len(words) * 0.3:
+        return False
+    artifacts = ['artlist', 'music licensing', 'royalty free']
+    if sum(1 for a in artifacts if a in lyrics.lower()) >= 2:
+        return False
+    return True
+
+
+def clean_lyrics(lyrics: str) -> str:
+    result = lyrics
+    for w in ["artlist io", "artlist.io", "artless io", "artless i o",
+              "music licensing reimagined", "music licensing reimagine",
+              "music licensing", "royalty free"]:
+        result = result.lower().replace(w, " ")
+    return re.sub(r'\s+', ' ', result).strip()
+
 
 async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
+
+    db = get_who_looking()
+    actively_looking = db.get("actively_looking", [])
+    not_available = db.get("not_available", [])
+    deceased = db.get("deceased", [])
+
+    # Format artist list for Claude
+    artist_list = "\n".join([
+        f"- {a['artist']} ({a['label']}, {a['territory']}): {a['brief']}"
+        for a in actively_looking
+    ])
+    not_available_str = ", ".join(not_available)
+    deceased_str = ", ".join(deceased)
 
     tempo = audio_features.get('tempo', 0)
     energy = audio_features.get('energy', 0)
@@ -22,92 +75,117 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
     elif median_f0 > 100:
         vocal_hint = "Male vocals"
     else:
-        vocal_hint = "Instrumental or unclear"
+        vocal_hint = "Unclear/instrumental"
 
-    # Clean watermarks
-    cleaned_lyrics = lyrics
-    for w in [
-        "artlist io", "artlist.io", "artless io", "artless i o",
-        "music licensing reimagined", "music licensing reimagine",
-        "music licensing", "royalty free"
-    ]:
-        cleaned_lyrics = cleaned_lyrics.lower().replace(w, " ")
-    cleaned_lyrics = re.sub(r'\s+', ' ', cleaned_lyrics).strip()
+    cleaned_lyrics = clean_lyrics(lyrics) if lyrics else ""
 
-    has_lyrics = len(cleaned_lyrics.split()) > 10
+    # IMPORTANT: Determine mode
+    has_audio = tempo > 0 or energy > 0
+    has_meaningful_lyrics = is_lyrics_meaningful(cleaned_lyrics)
+    has_any_text = len(cleaned_lyrics.strip()) > 5  # Even short descriptions count
 
-    system_prompt = """
-You are a world-class A&R consultant at a major music publisher.
+    if has_any_text and has_audio:
+        analysis_mode = "LYRICS + AUDIO"
+        song_data = f"""
+LYRICS / DESCRIPTION:
+{cleaned_lyrics}
 
-Your task: Analyse a song and identify the BEST real-world artists who would REALISTICALLY record this track as an external pitch.
+Audio features: BPM {tempo:.0f}, Energy {energy:.2f}, Acousticness {acousticness:.2f}, Danceability {danceability:.2f}, Vocals: {vocal_hint}
+"""
+    elif has_any_text and not has_audio:
+        # Lyrics-only mode — no audio file, just description
+        analysis_mode = "DESCRIPTION ONLY"
+        song_data = f"""
+SONG DESCRIPTION / LYRICS:
+{cleaned_lyrics}
 
-ANALYSIS APPROACH:
+Note: No audio file — match based purely on the description above.
+"""
+    elif has_audio and not has_any_text:
+        analysis_mode = "AUDIO ONLY"
+        song_data = f"""
+Instrumental or no lyrics detected.
+BPM: {tempo:.0f}, Energy: {energy:.2f}, Acousticness: {acousticness:.2f} (0=electronic, 1=acoustic), Danceability: {danceability:.2f}, Vocals: {vocal_hint}
+"""
+    else:
+        return {
+            "matches": [],
+            "detected_genre": "No data",
+            "genre_tags": [],
+            "pitch_angle": "Please upload an audio file or provide a song description.",
+            "market_fit": "",
+            "success": True
+        }
 
-Step 1 — Read the lyrics carefully and identify:
-- Primary genre (be very specific: not just "pop" but "country-pop", "indie folk", "future rave", "R&B soul", etc.)
-- Emotional tone and themes
-- Vocal style implied
-- Production style implied
+    system_prompt = f"""
+You are a world-class A&R consultant at a major UK music publisher.
 
-Step 2 — Cross-reference with audio features for confirmation
+You have access to the LIVE "Who's Looking" list — the actual current database of UK artists actively seeking songs (April 2026).
 
-Step 3 — Select artists who:
-a) Work in EXACTLY this genre
-b) Are KNOWN to accept external songs
-c) Would genuinely record this specific track
+YOUR TASK: Match this song to the BEST artists from the Who's Looking list below.
 
-CRITICAL RULES:
+═══════════════════════════════════════════
+WHO'S LOOKING (April 2026):
+═══════════════════════════════════════════
+{artist_list}
 
-1. Genre accuracy is everything
-   - Country lyrics = country/country-pop artists ONLY
-   - Electronic/dance = dance producers and vocalists ONLY
-   - Singer-songwriter = singer-songwriter artists ONLY
-   - R&B/soul = R&B artists ONLY
+═══════════════════════════════════════════
+NOT AVAILABLE — NEVER SUGGEST:
+═══════════════════════════════════════════
+{not_available_str}
 
-2. Never suggest artists outside the detected genre, regardless of their popularity
+═══════════════════════════════════════════
+DECEASED — NEVER SUGGEST EVER:
+═══════════════════════════════════════════
+{deceased_str}
 
-3. Use your complete knowledge of the music industry — suggest the most accurate matches even if they are less famous
+═══════════════════════════════════════════
+MATCHING RULES:
+═══════════════════════════════════════════
 
-4. Only suggest artists known to accept external songs
+1. ONLY suggest artists from the Who's Looking list. Do NOT suggest anyone not on it.
 
-5. Scores must be strict:
-   - 0.90+ = near-perfect stylistic and genre match
-   - 0.80-0.89 = strong match, same genre
-   - 0.70-0.79 = reasonable match
-   - Below 0.70 = do not include
+2. NEVER suggest artists on the Not Available list.
 
-6. Return 5-8 matches minimum. Never return empty.
+3. NEVER suggest deceased artists — absolute rule.
+
+4. Match based on each artist's SPECIFIC BRIEF:
+   - Joel Corry → Only match if track is COUNTRY
+   - Take That → Only if CLASSIC ANTHEMIC POP (Shine, Patience style)
+   - Dua Lipa → Only if late 70s/80s Talking Heads/Bowie influenced
+   - Loreen → Only if DARK POP/DANCE — NO BALLADS
+   - Sub Focus → Only if big electronic anthem like 'I Found You'
+   - Bunt. → Only if emotional piano/vocal that can flip to dance
+
+5. UK artists first. Flag each as UK or International.
+
+6. Scores: 0.90+ perfect, 0.80-0.89 strong, 0.70-0.79 good. Below 0.70 = exclude.
+
+7. Return 5-7 matches. Quality over quantity.
 """
 
     user_message = f"""
-SONG TO ANALYSE:
+Analysis mode: {analysis_mode}
 
-Audio Features:
-- BPM: {tempo:.0f}
-- Energy: {energy:.2f}
-- Acousticness: {acousticness:.2f} (0=electronic, 1=acoustic)
-- Danceability: {danceability:.2f}
-- Vocals: {vocal_hint}
+{song_data}
 
-{"Lyrics:" if has_lyrics else "Note: Instrumental track — analyse audio features only."}
-{cleaned_lyrics if has_lyrics else ""}
-
-Based on your analysis, return the best matching artists.
-
-Return ONLY valid JSON, no other text:
+Return ONLY valid JSON:
 {{
     "matches": [
         {{
             "artist": "Artist Name",
+            "label": "Their Label",
+            "territory": "UK or International",
             "final_score": 0.88,
-            "reason": "Clear explanation referencing the song's specific style and why this artist is a genuine match.",
-            "genre_fit": "Specific genre alignment"
+            "reason": "Why this artist specifically matches — reference their brief.",
+            "genre_fit": "Genre alignment",
+            "brief_match": "How this song fits their current brief"
         }}
     ],
-    "detected_genre": "Specific genre (e.g. Country-Pop, Indie Folk, Future Rave, R&B Soul)",
-    "genre_tags": ["tag1", "tag2", "tag3"],
+    "detected_genre": "Specific genre",
+    "genre_tags": ["tag1", "tag2"],
     "pitch_angle": "How to pitch this commercially",
-    "market_fit": "Target audience and market"
+    "market_fit": "Target audience and territory"
 }}
 """
 
@@ -115,7 +193,7 @@ Return ONLY valid JSON, no other text:
         response = anthropic_client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=3000,
-            temperature=0.2,
+            temperature=0.1,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
         )
