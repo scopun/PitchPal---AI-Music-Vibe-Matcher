@@ -40,12 +40,13 @@ async def match_artist(
         if not audio_features:
             raise HTTPException(status_code=500, detail="Audio analysis failed.")
 
-        # Step 2: Lyrics via AssemblyAI
+        # Step 2: AssemblyAI lyrics extraction
+        # NOTE: temp file must still exist here — do not delete before this completes
         whisper_result = extract_lyrics_from_audio(temp_file_path)
         lyrics = whisper_result.get("lyrics", "").strip()
         lyrics_extracted = whisper_result.get("extraction_success", False)
 
-        # Step 3: AI matching
+        # Step 3: AI matching — pass both lyrics and audio features
         results = await find_best_match(audio_features, lyrics)
 
         if isinstance(results, dict):
@@ -68,6 +69,7 @@ async def match_artist(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
+        # Delete temp file AFTER everything is complete
         if temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)

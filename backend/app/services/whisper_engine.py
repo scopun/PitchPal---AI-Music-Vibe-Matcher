@@ -11,9 +11,9 @@ BASE_URL = "https://api.assemblyai.com"
 def extract_lyrics_from_audio(audio_path: str) -> dict:
     """
     Extract lyrics from audio using AssemblyAI.
+    Uploads file, waits for transcription, returns lyrics.
     """
     try:
-        # Load key inside function — ensures .env is loaded
         api_key = os.getenv("ASSEMBLYAI_API_KEY", "")
 
         if not api_key:
@@ -23,14 +23,23 @@ def extract_lyrics_from_audio(audio_path: str) -> dict:
                 "message": "ASSEMBLYAI_API_KEY not set"
             }
 
+        # Verify file still exists before uploading
+        if not os.path.exists(audio_path):
+            return {
+                "lyrics": "",
+                "extraction_success": False,
+                "message": f"Audio file not found: {audio_path}"
+            }
+
         headers = {"authorization": api_key}
 
-        # Step 1: Upload
+        # Step 1: Upload file
         with open(audio_path, "rb") as f:
             upload_response = requests.post(
                 BASE_URL + "/v2/upload",
                 headers=headers,
-                data=f
+                data=f,
+                timeout=60
             )
 
         if upload_response.status_code != 200:
@@ -50,22 +59,23 @@ def extract_lyrics_from_audio(audio_path: str) -> dict:
                 "language_detection": True,
                 "speech_models": ["universal-2"]
             },
-            headers=headers
+            headers=headers,
+            timeout=30
         )
 
         if transcript_response.status_code != 200:
             return {
                 "lyrics": "",
                 "extraction_success": False,
-                "message": f"Transcription failed: {transcript_response.text}"
+                "message": f"Transcription request failed: {transcript_response.text}"
             }
 
         transcript_id = transcript_response.json()["id"]
         polling_url = BASE_URL + "/v2/transcript/" + transcript_id
 
-        # Step 3: Poll
-        for _ in range(30):
-            result = requests.get(polling_url, headers=headers).json()
+        # Step 3: Poll for result
+        for attempt in range(40):  # max 2 minutes
+            result = requests.get(polling_url, headers=headers, timeout=30).json()
 
             if result["status"] == "completed":
                 transcript = (result.get("text") or "").strip()
@@ -77,7 +87,7 @@ def extract_lyrics_from_audio(audio_path: str) -> dict:
                         "detected_language": result.get("language_code", "en"),
                         "extraction_success": False,
                         "word_count": word_count,
-                        "message": "Insufficient vocals"
+                        "message": "Insufficient vocals detected"
                     }
 
                 return {
@@ -92,7 +102,7 @@ def extract_lyrics_from_audio(audio_path: str) -> dict:
                 return {
                     "lyrics": "",
                     "extraction_success": False,
-                    "message": f"Error: {result.get('error')}"
+                    "message": f"Transcription error: {result.get('error', 'Unknown')}"
                 }
 
             time.sleep(3)
@@ -100,7 +110,7 @@ def extract_lyrics_from_audio(audio_path: str) -> dict:
         return {
             "lyrics": "",
             "extraction_success": False,
-            "message": "Timeout"
+            "message": "Transcription timeout after 2 minutes"
         }
 
     except Exception as e:

@@ -24,13 +24,11 @@ def get_who_looking():
 
 
 def is_lyrics_meaningful(lyrics: str) -> bool:
-    """Check if extracted audio lyrics are meaningful (not garbled)."""
     if not lyrics or len(lyrics.strip()) < 20:
         return False
     words = lyrics.split()
     if len(words) < 15:
         return False
-    # Too many question marks = garbled AssemblyAI output
     question_marks = lyrics.count('?')
     if question_marks > len(words) * 0.3:
         return False
@@ -49,6 +47,46 @@ def clean_lyrics(lyrics: str) -> str:
     return re.sub(r'\s+', ' ', result).strip()
 
 
+def build_audio_genre_hints(tempo, acousticness, danceability, energy, vocal_hint):
+    """Build clear genre hints from audio features for when lyrics are unavailable."""
+
+    # Production type
+    if acousticness > 0.65:
+        production_hint = "ACOUSTIC/ORGANIC — live instruments, guitar/piano-led, NOT electronic dance"
+    elif acousticness > 0.35:
+        production_hint = "MIXED — blend of acoustic warmth and electronic elements"
+    else:
+        production_hint = "ELECTRONIC/DIGITAL — synths, programmed beats, dance production"
+
+    # Tempo hint
+    if tempo < 75:
+        tempo_hint = "SLOW — ballad, emotional, intimate"
+    elif tempo < 95:
+        tempo_hint = "MID-TEMPO — country, folk, R&B, roots-pop"
+    elif tempo < 115:
+        tempo_hint = "UPBEAT — pop, indie-pop, country-pop, soft dance"
+    elif tempo < 130:
+        tempo_hint = "FAST — dance-pop, house, electronic pop"
+    else:
+        tempo_hint = "VERY FAST — EDM, drum & bass, hard dance"
+
+    # Combined genre signal — most important
+    if danceability > 0.8 and acousticness < 0.3:
+        genre_signal = "DANCE/ELECTRONIC territory — high danceability + pure electronic production"
+    elif danceability > 0.7 and acousticness >= 0.35:
+        genre_signal = "ROOTS-POP / COUNTRY-POP / UPLIFTING POP territory — high danceability but acoustic warmth means this is NOT dance/electronic"
+    elif acousticness > 0.55 and danceability < 0.6:
+        genre_signal = "ACOUSTIC/FOLK/COUNTRY territory — organic production, lower danceability"
+    elif acousticness > 0.4 and tempo < 95 and danceability < 0.7:
+        genre_signal = "SINGER-SONGWRITER / BALLAD / SOUL territory — organic, mid-tempo, emotional"
+    elif energy < 0.4:
+        genre_signal = "INTIMATE/QUIET territory — low energy suggests ballad, atmospheric, or ambient"
+    else:
+        genre_signal = "MAINSTREAM POP territory — balanced features suggest commercial pop"
+
+    return production_hint, tempo_hint, genre_signal
+
+
 async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
 
     db = get_who_looking()
@@ -56,11 +94,20 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
     not_available = db.get("not_available", [])
     deceased = db.get("deceased", [])
 
-    # Format artist list for Claude
-    artist_list = "\n".join([
-        f"- {a['artist']} ({a['label']}, {a['territory']}): {a['brief']}"
-        for a in actively_looking
-    ])
+    # Format artist list with full sonic profiles
+    artist_lines = []
+    for a in actively_looking:
+        line = f"- {a['artist']} ({a['label']}, {a['territory']})"
+        line += f"\n  BRIEF: {a['brief']}"
+        if a.get('sonic_profile'):
+            line += f"\n  SONIC PROFILE: {a['sonic_profile']}"
+        if a.get('references'):
+            line += f"\n  REFERENCES: {a['references']}"
+        if a.get('not_this'):
+            line += f"\n  NOT THIS: {a['not_this']}"
+        artist_lines.append(line)
+
+    artist_list = "\n".join(artist_lines)
     not_available_str = ", ".join(not_available)
     deceased_str = ", ".join(deceased)
 
@@ -79,10 +126,8 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
 
     cleaned_lyrics = clean_lyrics(lyrics) if lyrics else ""
 
-    # IMPORTANT: Determine mode
     has_audio = tempo > 0 or energy > 0
-    has_meaningful_lyrics = is_lyrics_meaningful(cleaned_lyrics)
-    has_any_text = len(cleaned_lyrics.strip()) > 5  # Even short descriptions count
+    has_any_text = len(cleaned_lyrics.strip()) > 5
 
     if has_any_text and has_audio:
         analysis_mode = "LYRICS + AUDIO"
@@ -90,10 +135,9 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
 LYRICS / DESCRIPTION:
 {cleaned_lyrics}
 
-Audio features: BPM {tempo:.0f}, Energy {energy:.2f}, Acousticness {acousticness:.2f}, Danceability {danceability:.2f}, Vocals: {vocal_hint}
+Audio: BPM {tempo:.0f}, Energy {energy:.2f}, Acousticness {acousticness:.2f}, Danceability {danceability:.2f}, Vocals: {vocal_hint}
 """
     elif has_any_text and not has_audio:
-        # Lyrics-only mode — no audio file, just description
         analysis_mode = "DESCRIPTION ONLY"
         song_data = f"""
 SONG DESCRIPTION / LYRICS:
@@ -102,10 +146,29 @@ SONG DESCRIPTION / LYRICS:
 Note: No audio file — match based purely on the description above.
 """
     elif has_audio and not has_any_text:
+        # Audio only — use detailed genre hints
         analysis_mode = "AUDIO ONLY"
+        production_hint, tempo_hint, genre_signal = build_audio_genre_hints(
+            tempo, acousticness, danceability, energy, vocal_hint
+        )
         song_data = f"""
-Instrumental or no lyrics detected.
-BPM: {tempo:.0f}, Energy: {energy:.2f}, Acousticness: {acousticness:.2f} (0=electronic, 1=acoustic), Danceability: {danceability:.2f}, Vocals: {vocal_hint}
+Audio analysis only — no lyrics extracted (instrumental or unclear vocals):
+
+RAW DATA:
+- BPM: {tempo:.0f}
+- Energy: {energy:.2f}
+- Acousticness: {acousticness:.2f}
+- Danceability: {danceability:.2f}
+- Vocals: {vocal_hint}
+
+INTERPRETED SIGNALS:
+- Tempo: {tempo_hint}
+- Production: {production_hint}
+- Genre Signal: {genre_signal}
+
+CRITICAL REMINDER: Do NOT default to dance/electronic just because danceability is high.
+High danceability + acoustic warmth (0.35+) = roots-pop, country-pop, or uplifting pop — NOT dance/electronic.
+Example: BPM 92, danceability 1.0, acousticness 0.44, female vocals = country-pop or roots-pop territory.
 """
     else:
         return {
@@ -118,14 +181,18 @@ BPM: {tempo:.0f}, Energy: {energy:.2f}, Acousticness: {acousticness:.2f} (0=elec
         }
 
     system_prompt = f"""
-You are a world-class A&R consultant at a major UK music publisher.
+You are a world-class A&R consultant at a major UK music publisher with 20 years experience.
 
-You have access to the LIVE "Who's Looking" list — the actual current database of UK artists actively seeking songs (April 2026).
+You have access to the LIVE "Who's Looking" list with detailed sonic profiles for each artist.
 
-YOUR TASK: Match this song to the BEST artists from the Who's Looking list below.
+YOUR TASK: Match this song to the BEST artists from the list. You must match at the level of SONIC WORLD and MOOD — not just genre label.
+
+CRITICAL: Two artists can both be "dance" but be completely different sonic worlds.
+BUNT is emotional cinematic piano-led. Sigala is upbeat tropical house. These are NOT interchangeable.
+Read and apply each artist's sonic profile and NOT_THIS fields carefully.
 
 ═══════════════════════════════════════════
-WHO'S LOOKING (April 2026):
+WHO'S LOOKING — WITH SONIC PROFILES (April 2026):
 ═══════════════════════════════════════════
 {artist_list}
 
@@ -135,7 +202,7 @@ NOT AVAILABLE — NEVER SUGGEST:
 {not_available_str}
 
 ═══════════════════════════════════════════
-DECEASED — NEVER SUGGEST EVER:
+DECEASED — NEVER SUGGEST:
 ═══════════════════════════════════════════
 {deceased_str}
 
@@ -143,25 +210,31 @@ DECEASED — NEVER SUGGEST EVER:
 MATCHING RULES:
 ═══════════════════════════════════════════
 
-1. ONLY suggest artists from the Who's Looking list. Do NOT suggest anyone not on it.
+1. ONLY suggest artists from the Who's Looking list above.
 
 2. NEVER suggest artists on the Not Available list.
 
 3. NEVER suggest deceased artists — absolute rule.
 
-4. Match based on each artist's SPECIFIC BRIEF:
-   - Joel Corry → Only match if track is COUNTRY
-   - Take That → Only if CLASSIC ANTHEMIC POP (Shine, Patience style)
-   - Dua Lipa → Only if late 70s/80s Talking Heads/Bowie influenced
-   - Loreen → Only if DARK POP/DANCE — NO BALLADS
-   - Sub Focus → Only if big electronic anthem like 'I Found You'
-   - Bunt. → Only if emotional piano/vocal that can flip to dance
+4. SONIC WORLD MATCHING — most important rule:
+   Read each artist's SONIC PROFILE and NOT_THIS fields carefully.
+   A soulful jazz ballad CANNOT match Sigala (upbeat tropical house).
+   A dark emotional piano song CANNOT match Jonas Blue (feel-good only).
+   A Duffy/Joss Stone style soul song: Paloma Faith, Celeste, Brooke Combe, Joy Crookes.
+   An X Ambassadors indie-rock style: Rachel Chinouriri, Tom Grennan, goddard.
+   A Myles Smith intimate singer-songwriter: Myles Smith, Cian Ducrot, Lewis Capaldi — NOT Take That, NOT Sigala.
+   A country/roots-pop song: Joel Corry (country brief), Kylie Minogue (Golden era), Nell Mescal (Nashville).
 
 5. UK artists first. Flag each as UK or International.
 
-6. Scores: 0.90+ perfect, 0.80-0.89 strong, 0.70-0.79 good. Below 0.70 = exclude.
+6. Scores:
+   - 0.90+ = sonic world, mood, production AND genre all align perfectly
+   - 0.80-0.89 = strong sonic match, same world
+   - 0.70-0.79 = adjacent world, credible pitch
+   - Below 0.70 = DO NOT include
 
-7. Return 5-7 matches. Quality over quantity.
+7. Return 5-7 matches MAXIMUM. Quality over quantity.
+   If fewer than 5 genuinely fit, return fewer. Never force weak matches.
 """
 
     user_message = f"""
@@ -177,13 +250,13 @@ Return ONLY valid JSON:
             "label": "Their Label",
             "territory": "UK or International",
             "final_score": 0.88,
-            "reason": "Why this artist specifically matches — reference their brief.",
-            "genre_fit": "Genre alignment",
-            "brief_match": "How this song fits their current brief"
+            "reason": "Specific explanation referencing their sonic profile and why this song fits their world.",
+            "genre_fit": "Specific sonic alignment",
+            "brief_match": "How this song fits their current brief and sonic world"
         }}
     ],
-    "detected_genre": "Specific genre",
-    "genre_tags": ["tag1", "tag2"],
+    "detected_genre": "Specific genre and sonic world",
+    "genre_tags": ["tag1", "tag2", "tag3"],
     "pitch_angle": "How to pitch this commercially",
     "market_fit": "Target audience and territory"
 }}
