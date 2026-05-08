@@ -29,8 +29,7 @@ def is_lyrics_meaningful(lyrics: str) -> bool:
     words = lyrics.split()
     if len(words) < 15:
         return False
-    question_marks = lyrics.count('?')
-    if question_marks > len(words) * 0.3:
+    if lyrics.count('?') > len(words) * 0.3:
         return False
     artifacts = ['artlist', 'music licensing', 'royalty free']
     if sum(1 for a in artifacts if a in lyrics.lower()) >= 2:
@@ -47,67 +46,59 @@ def clean_lyrics(lyrics: str) -> str:
     return re.sub(r'\s+', ' ', result).strip()
 
 
-def build_audio_genre_hints(tempo, acousticness, danceability, energy, vocal_hint):
-    """Build clear genre hints from audio features for when lyrics are unavailable."""
-
-    # Production type
+def build_audio_hints(tempo, acousticness, danceability, energy, vocal_hint):
     if acousticness > 0.65:
-        production_hint = "ACOUSTIC/ORGANIC — live instruments, guitar/piano-led, NOT electronic dance"
+        production = "ACOUSTIC/ORGANIC — live instruments, NOT electronic dance"
     elif acousticness > 0.35:
-        production_hint = "MIXED — blend of acoustic warmth and electronic elements"
+        production = "MIXED — acoustic + electronic blend"
     else:
-        production_hint = "ELECTRONIC/DIGITAL — synths, programmed beats, dance production"
+        production = "ELECTRONIC/DIGITAL — synths, programmed beats"
 
-    # Tempo hint
     if tempo < 75:
-        tempo_hint = "SLOW — ballad, emotional, intimate"
+        tempo_h = "SLOW — ballad/emotional/intimate"
     elif tempo < 95:
-        tempo_hint = "MID-TEMPO — country, folk, R&B, roots-pop"
+        tempo_h = "MID-TEMPO — country/folk/R&B/roots-pop"
     elif tempo < 115:
-        tempo_hint = "UPBEAT — pop, indie-pop, country-pop, soft dance"
+        tempo_h = "UPBEAT — pop/indie/country-pop"
     elif tempo < 130:
-        tempo_hint = "FAST — dance-pop, house, electronic pop"
+        tempo_h = "FAST — dance-pop/house/electronic"
     else:
-        tempo_hint = "VERY FAST — EDM, drum & bass, hard dance"
+        tempo_h = "VERY FAST — EDM/drum&bass"
 
-    # Combined genre signal — most important
     if danceability > 0.8 and acousticness < 0.3:
-        genre_signal = "DANCE/ELECTRONIC territory — high danceability + pure electronic production"
+        genre_sig = "DANCE/ELECTRONIC territory"
     elif danceability > 0.7 and acousticness >= 0.35:
-        genre_signal = "ROOTS-POP / COUNTRY-POP / UPLIFTING POP territory — high danceability but acoustic warmth means this is NOT dance/electronic"
+        genre_sig = "ROOTS-POP/COUNTRY-POP — high danceability but acoustic warmth = NOT pure dance"
     elif acousticness > 0.55 and danceability < 0.6:
-        genre_signal = "ACOUSTIC/FOLK/COUNTRY territory — organic production, lower danceability"
-    elif acousticness > 0.4 and tempo < 95 and danceability < 0.7:
-        genre_signal = "SINGER-SONGWRITER / BALLAD / SOUL territory — organic, mid-tempo, emotional"
+        genre_sig = "ACOUSTIC/FOLK/SINGER-SONGWRITER territory"
+    elif acousticness > 0.4 and tempo < 95:
+        genre_sig = "SINGER-SONGWRITER/BALLAD/SOUL territory"
     elif energy < 0.4:
-        genre_signal = "INTIMATE/QUIET territory — low energy suggests ballad, atmospheric, or ambient"
+        genre_sig = "INTIMATE/QUIET — ballad or atmospheric"
     else:
-        genre_signal = "MAINSTREAM POP territory — balanced features suggest commercial pop"
+        genre_sig = "MAINSTREAM POP territory"
 
-    return production_hint, tempo_hint, genre_signal
+    return production, tempo_h, genre_sig
 
 
-async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
+async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected_language: str = "en") -> dict:
 
     db = get_who_looking()
     actively_looking = db.get("actively_looking", [])
     not_available = db.get("not_available", [])
     deceased = db.get("deceased", [])
 
-    # Format artist list with full sonic profiles
+    # Build who's looking list string
     artist_lines = []
     for a in actively_looking:
-        line = f"- {a['artist']} ({a['label']}, {a['territory']})"
-        line += f"\n  BRIEF: {a['brief']}"
+        line = f"- {a['artist']} ({a.get('label','')}, {a.get('territory','')}): {a.get('brief','')}"
         if a.get('sonic_profile'):
-            line += f"\n  SONIC PROFILE: {a['sonic_profile']}"
-        if a.get('references'):
-            line += f"\n  REFERENCES: {a['references']}"
+            line += f" | SOUND: {a['sonic_profile']}"
         if a.get('not_this'):
-            line += f"\n  NOT THIS: {a['not_this']}"
+            line += f" | NOT: {a['not_this']}"
         artist_lines.append(line)
 
-    artist_list = "\n".join(artist_lines)
+    who_looking_str = "\n".join(artist_lines)
     not_available_str = ", ".join(not_available)
     deceased_str = ", ".join(deceased)
 
@@ -125,120 +116,61 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "") -> dict:
         vocal_hint = "Unclear/instrumental"
 
     cleaned_lyrics = clean_lyrics(lyrics) if lyrics else ""
-
     has_audio = tempo > 0 or energy > 0
-    has_any_text = len(cleaned_lyrics.strip()) > 5
+    has_text = len(cleaned_lyrics.strip()) > 5
 
-    if has_any_text and has_audio:
-        analysis_mode = "LYRICS + AUDIO"
-        song_data = f"""
-LYRICS / DESCRIPTION:
-{cleaned_lyrics}
+    # Language
+    is_english = detected_language.lower() in ['en', 'english', '']
+    lang_note = f"\n⚠️ LANGUAGE: Song is in {detected_language.upper()} — match artists who work in this language/market." if not is_english else ""
 
-Audio: BPM {tempo:.0f}, Energy {energy:.2f}, Acousticness {acousticness:.2f}, Danceability {danceability:.2f}, Vocals: {vocal_hint}
-"""
-    elif has_any_text and not has_audio:
-        analysis_mode = "DESCRIPTION ONLY"
-        song_data = f"""
-SONG DESCRIPTION / LYRICS:
-{cleaned_lyrics}
-
-Note: No audio file — match based purely on the description above.
-"""
-    elif has_audio and not has_any_text:
-        # Audio only — use detailed genre hints
-        analysis_mode = "AUDIO ONLY"
-        production_hint, tempo_hint, genre_signal = build_audio_genre_hints(
-            tempo, acousticness, danceability, energy, vocal_hint
-        )
-        song_data = f"""
-Audio analysis only — no lyrics extracted (instrumental or unclear vocals):
-
-RAW DATA:
-- BPM: {tempo:.0f}
-- Energy: {energy:.2f}
-- Acousticness: {acousticness:.2f}
-- Danceability: {danceability:.2f}
-- Vocals: {vocal_hint}
-
-INTERPRETED SIGNALS:
-- Tempo: {tempo_hint}
-- Production: {production_hint}
-- Genre Signal: {genre_signal}
-
-CRITICAL REMINDER: Do NOT default to dance/electronic just because danceability is high.
-High danceability + acoustic warmth (0.35+) = roots-pop, country-pop, or uplifting pop — NOT dance/electronic.
-Example: BPM 92, danceability 1.0, acousticness 0.44, female vocals = country-pop or roots-pop territory.
-"""
+    if has_text and has_audio:
+        mode = "LYRICS + AUDIO"
+        song_data = f"LYRICS:{lang_note}\n{cleaned_lyrics}\n\nAudio: BPM {tempo:.0f}, Energy {energy:.2f}, Acousticness {acousticness:.2f}, Danceability {danceability:.2f}, Vocals: {vocal_hint}"
+    elif has_text:
+        mode = "DESCRIPTION ONLY"
+        song_data = f"DESCRIPTION:{lang_note}\n{cleaned_lyrics}"
+    elif has_audio:
+        mode = "AUDIO ONLY"
+        prod, tempo_h, genre_sig = build_audio_hints(tempo, acousticness, danceability, energy, vocal_hint)
+        song_data = f"Audio: BPM {tempo:.0f} ({tempo_h}), Energy {energy:.2f}, Acousticness {acousticness:.2f} ({prod}), Danceability {danceability:.2f} ({genre_sig}), Vocals: {vocal_hint}"
     else:
-        return {
-            "matches": [],
-            "detected_genre": "No data",
-            "genre_tags": [],
-            "pitch_angle": "Please upload an audio file or provide a song description.",
-            "market_fit": "",
-            "success": True
-        }
+        return {"matches": [], "detected_genre": "No data", "genre_tags": [], "pitch_angle": "Please upload an audio file.", "market_fit": "", "success": True}
 
-    system_prompt = f"""
-You are a world-class A&R consultant at a major UK music publisher with 20 years experience.
+    system_prompt = f"""You are a world-class A&R consultant at a major UK music publisher with 20 years experience.
 
-You have access to the LIVE "Who's Looking" list with detailed sonic profiles for each artist.
+TASK: Find the best artist matches for this song using TWO sources:
 
-YOUR TASK: Match this song to the BEST artists from the list. You must match at the level of SONIC WORLD and MOOD — not just genre label.
+SOURCE 1 — WHO'S LOOKING LIST (these artists are actively seeking songs RIGHT NOW):
+{who_looking_str}
 
-CRITICAL: Two artists can both be "dance" but be completely different sonic worlds.
-BUNT is emotional cinematic piano-led. Sigala is upbeat tropical house. These are NOT interchangeable.
-Read and apply each artist's sonic profile and NOT_THIS fields carefully.
+SOURCE 2 — YOUR COMPLETE MUSIC INDUSTRY KNOWLEDGE (use this for additional matches)
 
-═══════════════════════════════════════════
-WHO'S LOOKING — WITH SONIC PROFILES (April 2026):
-═══════════════════════════════════════════
-{artist_list}
+MATCHING APPROACH:
+1. First identify the song's genre, sonic world, mood, language and production style
+2. Find matches from the Who's Looking list (label these as "Who's Looking")  
+3. Find additional strong matches from your global industry knowledge (label these as "Industry Match")
+4. Combine both — always return the best 5-8 matches regardless of source
 
-═══════════════════════════════════════════
-NOT AVAILABLE — NEVER SUGGEST:
-═══════════════════════════════════════════
-{not_available_str}
+LANGUAGE RULE — ABSOLUTE:
+- Non-English songs MUST be matched to artists who work in that language
+- Spanish song → Spanish/Latin artists (Rosalía, Bad Bunny, C. Tangana, Bizarrak, Aitana, Nathy Peluso etc.)
+- NEVER match a UK/US English artist to a non-English language song
 
-═══════════════════════════════════════════
-DECEASED — NEVER SUGGEST:
-═══════════════════════════════════════════
-{deceased_str}
+SONIC WORLD RULES — CRITICAL:
+- A BALLAD/SPARSE SONG must NEVER match dance artists (Becky Hill, Sigala, Meduza)
+- DARK UNDERGROUND TECHNO (Anyma) ≠ MELODIC HOUSE (Meduza) ≠ TROPICAL POP (Sigala)
+- Singer-songwriter sparse production → Lewis Capaldi, Cian Ducrot, Sam Fischer, JP Saxe
+- Underground dark electronic → Anyma, not Meduza or Sigala
+- If a song is clearly a ballad/singer-songwriter → return those artists even if not on Who's Looking list
 
-═══════════════════════════════════════════
-MATCHING RULES:
-═══════════════════════════════════════════
+NEVER SUGGEST:
+- Not available: {not_available_str}
+- Deceased: {deceased_str}
 
-1. ONLY suggest artists from the Who's Looking list above.
+SCORES: 0.90+ perfect, 0.80-0.89 strong, 0.70-0.79 reasonable. Below 0.70 = exclude.
+Return 5-8 matches. Never force weak matches — fewer accurate matches is better than many wrong ones."""
 
-2. NEVER suggest artists on the Not Available list.
-
-3. NEVER suggest deceased artists — absolute rule.
-
-4. SONIC WORLD MATCHING — most important rule:
-   Read each artist's SONIC PROFILE and NOT_THIS fields carefully.
-   A soulful jazz ballad CANNOT match Sigala (upbeat tropical house).
-   A dark emotional piano song CANNOT match Jonas Blue (feel-good only).
-   A Duffy/Joss Stone style soul song: Paloma Faith, Celeste, Brooke Combe, Joy Crookes.
-   An X Ambassadors indie-rock style: Rachel Chinouriri, Tom Grennan, goddard.
-   A Myles Smith intimate singer-songwriter: Myles Smith, Cian Ducrot, Lewis Capaldi — NOT Take That, NOT Sigala.
-   A country/roots-pop song: Joel Corry (country brief), Kylie Minogue (Golden era), Nell Mescal (Nashville).
-
-5. UK artists first. Flag each as UK or International.
-
-6. Scores:
-   - 0.90+ = sonic world, mood, production AND genre all align perfectly
-   - 0.80-0.89 = strong sonic match, same world
-   - 0.70-0.79 = adjacent world, credible pitch
-   - Below 0.70 = DO NOT include
-
-7. Return 5-7 matches MAXIMUM. Quality over quantity.
-   If fewer than 5 genuinely fit, return fewer. Never force weak matches.
-"""
-
-    user_message = f"""
-Analysis mode: {analysis_mode}
+    user_message = f"""Mode: {mode}
 
 {song_data}
 
@@ -246,26 +178,27 @@ Return ONLY valid JSON:
 {{
     "matches": [
         {{
-            "artist": "Artist Name",
-            "label": "Their Label",
+            "artist": "Name",
+            "label": "Label",
             "territory": "UK or International",
+            "source": "Who's Looking" or "Industry Match",
             "final_score": 0.88,
-            "reason": "Specific explanation referencing their sonic profile and why this song fits their world.",
-            "genre_fit": "Specific sonic alignment",
-            "brief_match": "How this song fits their current brief and sonic world"
+            "reason": "Why this artist fits this specific song.",
+            "genre_fit": "Sonic alignment",
+            "brief_match": "How song fits their world"
         }}
     ],
-    "detected_genre": "Specific genre and sonic world",
-    "genre_tags": ["tag1", "tag2", "tag3"],
-    "pitch_angle": "How to pitch this commercially",
-    "market_fit": "Target audience and territory"
-}}
-"""
+    "detected_genre": "Specific genre",
+    "detected_language": "{detected_language}",
+    "genre_tags": ["tag1", "tag2"],
+    "pitch_angle": "Commercial pitch",
+    "market_fit": "Target audience"
+}}"""
 
     try:
         response = anthropic_client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=3000,
+            max_tokens=4000,
             temperature=0.1,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
@@ -279,8 +212,7 @@ Return ONLY valid JSON:
                 return json.loads(json_match.group(0))
             except:
                 return {"error": "JSON parsing failed", "matches": [], "raw": raw_text}
-        else:
-            return {"error": "No JSON found", "matches": [], "raw": raw_text}
+        return {"error": "No JSON found", "matches": [], "raw": raw_text}
 
     except Exception as e:
         return {"error": str(e), "matches": []}
