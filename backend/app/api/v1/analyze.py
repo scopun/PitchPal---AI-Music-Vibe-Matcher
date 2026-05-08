@@ -14,10 +14,6 @@ async def match_artist(
     audio_file: UploadFile = File(...),
     debug: bool = Form(False)
 ):
-    """
-    Main endpoint — upload audio file only.
-    Flow: librosa audio features + AssemblyAI lyrics → Claude AI matching
-    """
     filename = (audio_file.filename or "").lower()
     if not filename.endswith((".mp3", ".wav", ".m4a", ".flac", ".aac")):
         raise HTTPException(
@@ -40,14 +36,14 @@ async def match_artist(
         if not audio_features:
             raise HTTPException(status_code=500, detail="Audio analysis failed.")
 
-        # Step 2: AssemblyAI lyrics extraction
-        # NOTE: temp file must still exist here — do not delete before this completes
+        # Step 2: AssemblyAI lyrics + language detection
         whisper_result = extract_lyrics_from_audio(temp_file_path)
         lyrics = whisper_result.get("lyrics", "").strip()
         lyrics_extracted = whisper_result.get("extraction_success", False)
+        detected_language = whisper_result.get("detected_language", "en")
 
-        # Step 3: AI matching — pass both lyrics and audio features
-        results = await find_best_match(audio_features, lyrics)
+        # Step 3: AI matching with language awareness
+        results = await find_best_match(audio_features, lyrics, detected_language)
 
         if isinstance(results, dict):
             results["success"] = True
@@ -57,6 +53,7 @@ async def match_artist(
                 "energy": round(audio_features.get("energy", 0), 2),
             }
             results["lyrics_extracted"] = lyrics_extracted
+            results["detected_language"] = detected_language
             if debug:
                 results["extracted_features"] = audio_features
                 results["lyrics_used"] = lyrics if lyrics else "No lyrics extracted"
@@ -69,7 +66,6 @@ async def match_artist(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Delete temp file AFTER everything is complete
         if temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)
@@ -82,14 +78,10 @@ async def match_lyrics_only(
     lyrics: str = Form(...),
     debug: bool = Form(False)
 ):
-    """
-    Quick test endpoint — no audio needed.
-    Provide song description or lyrics directly.
-    """
     if not lyrics or not lyrics.strip():
         raise HTTPException(status_code=400, detail="Lyrics cannot be empty.")
 
-    results = await find_best_match({}, lyrics.strip())
+    results = await find_best_match({}, lyrics.strip(), "en")
 
     if isinstance(results, dict):
         results["success"] = True

@@ -1,0 +1,194 @@
+[
+  {
+    "test": "TEST 1 \u2014 Fray (ethereal ballad)",
+    "status": "\u2705 PASS",
+    "artists": [
+      "London Grammar",
+      "Ellie Goulding",
+      "Holly Humberstone",
+      "Aurora",
+      "Nell Mescal",
+      "Birdy",
+      "Celeste"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 2 \u2014 K-Pop Song",
+    "status": "\u2705 PASS",
+    "artists": [],
+    "wrong": []
+  },
+  {
+    "test": "TEST 3 \u2014 Future Rave Electronic",
+    "status": "\u2705 PASS",
+    "artists": [
+      "David Guetta",
+      "Ti\u00ebsto",
+      "Meduza",
+      "Oliver Heldens",
+      "Anyma",
+      "MORTEN",
+      "Hardwell",
+      "Martin Garrix"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 4 \u2014 Country Pop",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Kylie Minogue",
+      "Nell Mescal",
+      "Myles Smith",
+      "Ella Henderson",
+      "Maisie Peters",
+      "Anne-Marie",
+      "Kelsea Ballerini"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 5 \u2014 Singer Songwriter (Forget Me Knot)",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Myles Smith",
+      "Lewis Capaldi",
+      "Cian Ducrot",
+      "Sam Fischer",
+      "JP Saxe",
+      "Nell Mescal",
+      "Holly Humberstone",
+      "Phoebe Bridgers"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 6 \u2014 Jazzy Electronic Dance",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Becky Hill",
+      "Duke Dumont",
+      "MK",
+      "Disciples",
+      "SG Lewis",
+      "LF System",
+      "Peggy Gou",
+      "Jayda G"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 7 \u2014 Victor Ray (Soulful R&B)",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Victor Ray",
+      "James Emmanuel",
+      "Elmiene",
+      "Will Parker",
+      "Sam Ryder",
+      "Jordan Rakei",
+      "Teddy Swims",
+      "JP Saxe"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 8 \u2014 Anne Marie Dance Pop",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Anne-Marie",
+      "Jess Glynne",
+      "Zara Larsson",
+      "Becky Hill",
+      "Sigrid",
+      "Dua Lipa",
+      "Leigh-Anne"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 9 \u2014 Take That Anthemic Pop",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Take That",
+      "Only The Poets",
+      "Ronan Keating",
+      "Tom Grennan",
+      "Westlife",
+      "Olly Murs",
+      "James Arthur"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 10 \u2014 Duffy/Joss Stone Soul",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Paloma Faith",
+      "Celeste",
+      "Joy Crookes",
+      "Brooke Combe",
+      "Nectar Woode",
+      "Olivia Dean",
+      "Joss Stone"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 11 \u2014 Spanish Song",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Rosal\u00eda",
+      "Nathy Peluso",
+      "C. Tangana",
+      "Aitana",
+      "Bizarrap"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 12 \u2014 Dark Techno (Anyma)",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Anyma",
+      "Disrupta",
+      "Loreen",
+      "CamelPhat",
+      "Charlotte Haining",
+      "Bicep",
+      "Tale Of Us"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 13 \u2014 Forgive Me Ballad",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Lewis Capaldi",
+      "Sam Fischer",
+      "JP Saxe",
+      "Cian Ducrot",
+      "Myles Smith",
+      "Ellie Goulding",
+      "Celeste",
+      "Olivia Dean"
+    ],
+    "wrong": []
+  },
+  {
+    "test": "TEST 14 \u2014 Myles Smith Demo",
+    "status": "\u2705 PASS",
+    "artists": [
+      "Myles Smith",
+      "Lewis Capaldi",
+      "Cian Ducrot",
+      "Sam Fischer",
+      "JP Saxe",
+      "James Arthur",
+      "Will Parker",
+      "Tom Odell"
+    ],
+    "wrong": []
+  }
+]

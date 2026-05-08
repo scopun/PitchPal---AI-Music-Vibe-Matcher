@@ -1,13 +1,10 @@
 from app.services.lyric_engine import get_claude_vibe_match
 
 
-async def find_best_match(user_audio_features: dict, user_lyrics: str = ""):
-    """
-    Pass both audio features AND lyrics to Claude.
-    Audio features can be empty (for lyrics-only mode).
-    """
+async def find_best_match(user_audio_features: dict, user_lyrics: str = "", detected_language: str = "en"):
     results = await get_claude_vibe_match(
         audio_features=user_audio_features,
-        lyrics=user_lyrics
+        lyrics=user_lyrics,
+        detected_language=detected_language
     )
     return results
