@@ -1,18 +1,175 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Inter', sans-serif;
-  background: #05071a;
-  color: white;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+* {
+  box-sizing: border-box;
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.5); }
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+}
 
-input, button, textarea { font-family: 'Inter', sans-serif; }
+@layer utilities {
+  /* Text gradient: #9D6FFA → #5D93EA → #00B4D9 */
+  .gradient-text {
+    background: linear-gradient(90deg, #9D6FFA 0%, #5D93EA 46.635%, #00B4D9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Button gradient: #8137F6 → #641ABE */
+  .gradient-btn {
+    background: linear-gradient(90deg, #8137F6 0%, #641ABE 100%);
+  }
+
+  /* Dark mode page bg: #0C0623 with #000000 · 12% overlay */
+  .hero-bg-dark {
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)),
+      #0C0623;
+  }
+
+  /* Light mode page bg: pure white */
+  .hero-bg-light {
+    background: #FFFFFF;
+  }
+
+  /* Card view transition — used when the login card swaps between
+     login / signup / forgot / linkSent. Re-runs whenever the wrapper's
+     React `key` changes. */
+  @keyframes pp-card-swap-in {
+    0%   { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); }
+    60%  { opacity: 1; filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0); }
+  }
+  .card-swap-in {
+    animation: pp-card-swap-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-swap-in { animation: none; }
+  }
+
+  /* Analysing — equalizer bars (mimics a track playing). 12 bars,
+     each with its own delay below so the wave moves continuously. */
+  @keyframes pp-eq-bar {
+    0%, 100% { transform: scaleY(0.25); }
+    50%      { transform: scaleY(1); }
+  }
+  .pp-eq-bar {
+    transform-origin: center;
+    animation: pp-eq-bar 1100ms ease-in-out infinite;
+  }
+
+  /* Active step icon — soft pulsing ring */
+  @keyframes pp-step-active-pulse {
+    0%, 100% { transform: scale(1);    opacity: 1; }
+    50%      { transform: scale(1.12); opacity: 0.82; }
+  }
+  .pp-step-active { animation: pp-step-active-pulse 1300ms ease-in-out infinite; }
+
+  /* Done step — pop in once when the green check appears */
+  @keyframes pp-step-done-pop {
+    0%   { transform: scale(0.4); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+  }
+  .pp-step-done { animation: pp-step-done-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+  /* Step row — fade-slide in when first rendered */
+  @keyframes pp-step-row-in {
+    0%   { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .pp-step-row { animation: pp-step-row-in 500ms ease-out both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pp-eq-bar, .pp-step-active, .pp-step-done, .pp-step-row { animation: none; }
+  }
+
+  /* Match card entrance — fade + lift. Per-card delay is applied inline so
+     the three cards reveal one after another with a 110ms stagger. */
+  @keyframes pp-card-rise {
+    0%   { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .pp-card-rise {
+    animation: pp-card-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Top match badge — gentle pulse to draw the eye to the best match. */
+  @keyframes pp-badge-pulse {
+    0%, 100% { transform: translate(-50%, 0) scale(1);    box-shadow: 0 4px 20px rgba(129,55,246,0.50); }
+    50%      { transform: translate(-50%, 0) scale(1.04); box-shadow: 0 6px 28px rgba(129,55,246,0.70); }
+  }
+  .pp-badge-pulse {
+    animation: pp-badge-pulse 2400ms ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pp-card-rise, .pp-badge-pulse { animation: none; }
+  }
+
+  /* Site-wide button + card hover affordances. Apply alongside the
+     existing styling — they only add transitions and hover/active states.
+     Both respect prefers-reduced-motion. */
+  .pp-btn-lift {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 200ms ease-out,
+                background-color 200ms ease-out,
+                border-color 200ms ease-out;
+  }
+  .pp-btn-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(129, 55, 246, 0.45);
+  }
+  .pp-btn-lift:active { transform: translateY(0); }
+
+  .pp-btn-lift-soft {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                background-color 200ms ease-out,
+                border-color 200ms ease-out;
+  }
+  .pp-btn-lift-soft:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(129, 55, 246, 0.18);
+  }
+  .pp-btn-lift-soft:active { transform: translateY(0); }
+
+  .pp-card-hover {
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 320ms ease-out;
+  }
+  .pp-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 48px rgba(129, 55, 246, 0.18);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pp-btn-lift, .pp-btn-lift:hover, .pp-btn-lift:active,
+    .pp-btn-lift-soft, .pp-btn-lift-soft:hover, .pp-btn-lift-soft:active,
+    .pp-card-hover, .pp-card-hover:hover { transform: none; box-shadow: none; }
+  }
+
+  /* Border gradient utility for cards (D1ADFF → 8290FF → D1ADFF) */
+  .border-gradient-purple {
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+  }
+  .border-gradient-purple::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #D1ADFF 0%, #8290FF 50%, #D1ADFF 100%);
+    z-index: -1;
+  }
+}

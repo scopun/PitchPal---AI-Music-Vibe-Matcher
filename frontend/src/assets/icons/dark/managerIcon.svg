@@ -1,0 +1,10 @@
+<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M14 4L22 10L14 24L6 10L14 4Z" stroke="url(#mg_grad)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M6 10H22" stroke="url(#mg_grad2)" stroke-width="1.5"/>
+<path d="M10 10L14 4M18 10L14 4" stroke="url(#mg_grad3)" stroke-width="1.5" stroke-linecap="round"/>
+<defs>
+<linearGradient id="mg_grad" x1="6" y1="4" x2="22" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#FFD580"/><stop offset="1" stop-color="#FFA040"/></linearGradient>
+<linearGradient id="mg_grad2" x1="6" y1="10" x2="22" y2="10" gradientUnits="userSpaceOnUse"><stop stop-color="#FFD580"/><stop offset="1" stop-color="#FFA040"/></linearGradient>
+<linearGradient id="mg_grad3" x1="6" y1="4" x2="22" y2="10" gradientUnits="userSpaceOnUse"><stop stop-color="#FFD580"/><stop offset="1" stop-color="#FFA040"/></linearGradient>
+</defs>
+</svg>
