@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 // Dark icons
 import darkLogo from '../assets/icons/dark/upload/Logo.svg'
-import darkAvatar from '../assets/icons/dark/upload/avatar.svg'
+import darkAvatar from '../assets/icons/dark/upload/Avatar.svg'
 import darkSearch from '../assets/icons/dark/upload/searchIcon.svg'
 import darkUploadSmall from '../assets/icons/dark/upload/uploadSmallArrow.svg'
 import darkUploadBig from '../assets/icons/dark/upload/uploadBigArrow.svg'
@@ -46,7 +46,7 @@ import darkTagIcon from '../assets/icons/dark/result/tagIcon.svg'
 
 // Light icons
 import lightLogo from '../assets/icons/light/upload/Logo.svg'
-import lightAvatar from '../assets/icons/light/upload/avatar.svg'
+import lightAvatar from '../assets/icons/light/upload/Avatar.svg'
 import lightSearch from '../assets/icons/light/upload/searchIcon.svg'
 import lightUploadSmall from '../assets/icons/light/upload/uploadSmallArrow.svg'
 import lightUploadBig from '../assets/icons/light/upload/uploadBigArrow.svg'
