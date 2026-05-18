@@ -30,7 +30,7 @@
       "genre": "indie pop, synth-pop",
       "sonic_profile": "Dreamy synth-pop with indie sensibility. Melodic, nostalgic, emotionally intelligent. Think Pale Waves meets early Robyn.",
       "references": "Pale Waves, Carly Rae Jepsen, early Robyn \u2014 melodic synth-pop with emotional depth",
-      "not_this": "hard dance, grime, hip-hop, heavy rock, country"
+      "not_this": "dark atmospheric ballad, country, jazz, hip-hop, soul, classic singer-songwriter, intimate piano ballad, vintage soul, dance/EDM"
     },
     {
       "artist": "Gigi Moss",
@@ -480,7 +480,7 @@
       "genre": "dance-pop, tropical house, electronic pop",
       "sonic_profile": "UPBEAT, feel-good tropical house pop. Bright, summery, radio-friendly. Big commercial hooks. Always positive, never dark or melancholy.",
       "references": "Easy Love, Give Me Your Love, Lullaby \u2014 bright feel-good tropical house pop",
-      "not_this": "dark or emotional ballads, jazz, soul, acoustic, BUNT-style emotional electronic, grime"
+      "not_this": "dark indie, atmospheric ballad, soul, jazz, acoustic, country, singer-songwriter, intimate, dark electronic, underground"
     },
     {
       "artist": "Au/Ra",
@@ -500,7 +500,7 @@
       "genre": "dance-pop, UK dance, electronic pop",
       "sonic_profile": "Powerful female vocal over UK dance and electronic pop. Anthemic, club-ready but with genuine vocal performance at the centre.",
       "references": "Losing, Heaven On My Mind, Space \u2014 big UK dance-pop with powerful vocals",
-      "not_this": "jazz, acoustic folk, country, quiet introspective ballads"
+      "not_this": "ethereal atmospheric, intimate ballad, sparse acoustic, singer-songwriter, indie folk, art-pop, dark indie, alternative pop, soul ballad, jazz"
     },
     {
       "artist": "Belters Only",
@@ -530,7 +530,7 @@
       "genre": "pop, electronic pop, ballad",
       "sonic_profile": "Ethereal female pop. Can range from intimate acoustic ballad to electronic pop anthem. Breathy, distinctive vocal style.",
       "references": "Lights, Anything Could Happen, Still Falling For You \u2014 ethereal female pop",
-      "not_this": "grime, hip-hop, country, jazz, pure dance without vocal focus"
+      "not_this": "ethereal atmospheric ballad, bedroom indie pop, dark indie, confessional indie, alternative indie-pop, cinematic dark pop, Holly Humberstone style, London Grammar style, Phoebe Bridgers style, sparse production, intimate singer-songwriter, art-pop"
     },
     {
       "artist": "Elmiene",
@@ -760,7 +760,7 @@
       "genre": "house, dance-pop",
       "sonic_profile": "Melodic, emotional house music with massive commercial crossover. Big vocal hook, euphoric feeling, Ibiza energy.",
       "references": "Lose Control, Piece Of Your Heart \u2014 melodic house with massive pop crossover",
-      "not_this": "ballads, acoustic, country, grime, dark underground house"
+      "not_this": "underground techno, dark electronic, Anyma style, Afterlife label sound, ballad, acoustic, country, intimate, sparse"
     },
     {
       "artist": "Sigrid",

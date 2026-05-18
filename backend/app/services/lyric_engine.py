@@ -163,18 +163,29 @@ SONIC WORLD RULES — CRITICAL:
 - Underground dark electronic → Anyma, not Meduza or Sigala
 - If a song is clearly a ballad/singer-songwriter → return those artists even if not on Who's Looking list
 
+CRITICAL NOT_THIS ENFORCEMENT:
+Before assigning a score to ANY artist, check their NOT_THIS field carefully.
+If the song's detected_genre, genre_tags, or sonic descriptors contain ANY keyword/phrase from NOT_THIS — that artist MUST score below 0.78 (which means they will be excluded).
+
+Examples:
+- If song is "ethereal atmospheric ballad" → Ellie Goulding score MUST be below 0.78 (she has "ethereal atmospheric ballad" in not_this)
+- If song is "intimate piano singer-songwriter" → Becky Hill score MUST be below 0.78
+- If song is "dark underground techno" → Meduza score MUST be below 0.78
+
+This is NOT a guideline — it is a hard scoring rule. Apply it before final scoring.
+
 NEVER SUGGEST:
 - Not available: {not_available_str}
 - Deceased: {deceased_str}
 
 SCORING — ABSOLUTE RULES:
-- 0.90+ = Strong Match (sonic world, mood, production all align perfectly)
-- 0.80-0.89 = Good Match (clear sonic alignment, strong fit)
-- 0.70-0.79 = Worth Considering (adjacent world, may suit with adjustment)
-- Below 0.70 = EXCLUDE — do not return
+- 0.92+ = Strong Match (sonic world, mood, production all align perfectly)
+- 0.85-0.91 = Good Match (clear sonic alignment, strong fit)
+- 0.78-0.84 = Worth Considering (adjacent world, may suit with adjustment)
+- Below 0.78 = EXCLUDE — do not return
 
 Return 5-8 matches MAXIMUM, sorted by score (highest first).
-Never force weak matches. If fewer than 3 artists genuinely fit at 0.80+, return only those.
+Never force weak matches. If fewer than 3 artists genuinely fit at 0.85+, return only those.
 
 Be CONSERVATIVE with scores. Default to lower scores when uncertain.
 A 0.95 score should be reserved for absolutely perfect matches only."""
@@ -222,11 +233,13 @@ Return ONLY valid JSON:
                 result = json.loads(json_match.group(0))
                 matches = result.get("matches", [])
 
+                matches = [m for m in matches if m.get("final_score", 0) >= 0.78]
+
                 for m in matches:
                     score = m.get("final_score", 0)
-                    if score >= 0.90:
+                    if score >= 0.92:
                         m["confidence_level"] = "Strong Match"
-                    elif score >= 0.80:
+                    elif score >= 0.85:
                         m["confidence_level"] = "Good Match"
                     else:
                         m["confidence_level"] = "Worth Considering"
@@ -235,9 +248,9 @@ Return ONLY valid JSON:
                 result["matches"] = matches
 
                 result["match_summary"] = {
-                    "strong_matches": sum(1 for m in matches if m.get("final_score", 0) >= 0.90),
-                    "good_matches": sum(1 for m in matches if 0.80 <= m.get("final_score", 0) < 0.90),
-                    "worth_considering": sum(1 for m in matches if 0.70 <= m.get("final_score", 0) < 0.80),
+                    "strong_matches": sum(1 for m in matches if m.get("final_score", 0) >= 0.92),
+                    "good_matches": sum(1 for m in matches if 0.85 <= m.get("final_score", 0) < 0.92),
+                    "worth_considering": sum(1 for m in matches if 0.78 <= m.get("final_score", 0) < 0.85),
                     "total": len(matches)
                 }
 

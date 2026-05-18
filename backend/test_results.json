@@ -5,9 +5,9 @@
     "artists": [
       "London Grammar",
       "Birdy",
-      "Ellie Goulding",
       "Holly Humberstone",
       "Aurora",
+      "Phoebe Bridgers",
       "Celeste",
       "Lana Del Rey"
     ],
@@ -25,10 +25,11 @@
     "artists": [
       "David Guetta",
       "MORTEN",
+      "Martin Garrix",
       "Ti\u00ebsto",
       "Hardwell",
-      "Oliver Heldens",
-      "Martin Garrix"
+      "Meduza",
+      "Oliver Heldens"
     ],
     "wrong": []
   },
@@ -38,10 +39,11 @@
     "artists": [
       "Kylie Minogue",
       "Ella Henderson",
+      "Joel Corry",
       "Megan Moroney",
-      "Lainey Wilson",
+      "Kelsea Ballerini",
       "Nell Mescal",
-      "Joel Corry"
+      "Anne-Marie"
     ],
     "wrong": []
   },
@@ -51,10 +53,10 @@
     "artists": [
       "Myles Smith",
       "Lewis Capaldi",
-      "Nell Mescal",
       "Cian Ducrot",
       "Sam Fischer",
       "JP Saxe",
+      "Nell Mescal",
       "Holly Humberstone"
     ],
     "wrong": []
@@ -64,11 +66,11 @@
     "status": "\u2705 PASS",
     "artists": [
       "Becky Hill",
+      "Jazzy",
       "Duke Dumont",
-      "MK",
-      "Jayda G",
-      "Disciples",
       "LF System",
+      "SG Lewis",
+      "Disciples",
       "Gorgon City"
     ],
     "wrong": []
@@ -78,12 +80,12 @@
     "status": "\u2705 PASS",
     "artists": [
       "Victor Ray",
-      "James Emmanuel",
+      "Teddy Swims",
       "Elmiene",
+      "James Emmanuel",
       "Will Parker",
-      "Sam Fischer",
-      "Jordan Rakei",
-      "Myles Smith"
+      "Sam Ryder",
+      "JP Saxe"
     ],
     "wrong": []
   },
@@ -92,12 +94,12 @@
     "status": "\u2705 PASS",
     "artists": [
       "Anne-Marie",
-      "Jess Glynne",
       "Zara Larsson",
+      "Jess Glynne",
       "Becky Hill",
       "Sigrid",
       "Dua Lipa",
-      "Ellie Goulding"
+      "Leigh-Anne"
     ],
     "wrong": []
   },
@@ -107,9 +109,9 @@
     "artists": [
       "Take That",
       "Westlife",
+      "Gary Barlow",
       "Only The Poets",
       "Ronan Keating",
-      "Will Parker",
       "Tom Grennan"
     ],
     "wrong": []
@@ -119,8 +121,8 @@
     "status": "\u2705 PASS",
     "artists": [
       "Paloma Faith",
-      "Celeste",
       "Joss Stone",
+      "Celeste",
       "Joy Crookes",
       "Brooke Combe",
       "Olivia Dean",
@@ -135,8 +137,8 @@
       "Rosal\u00eda",
       "Nathy Peluso",
       "C. Tangana",
-      "Bizarrap",
-      "Aitana"
+      "Aitana",
+      "Bizarrap"
     ],
     "wrong": []
   },
@@ -145,11 +147,9 @@
     "status": "\u2705 PASS",
     "artists": [
       "Anyma",
+      "Gesaffelstein",
       "Tale Of Us",
-      "Massano",
-      "ARTBAT",
-      "Disrupta",
-      "London Grammar"
+      "Massano"
     ],
     "wrong": []
   },
@@ -158,9 +158,9 @@
     "status": "\u2705 PASS",
     "artists": [
       "Lewis Capaldi",
+      "Cian Ducrot",
       "Sam Fischer",
       "JP Saxe",
-      "Cian Ducrot",
       "Myles Smith",
       "Nell Mescal",
       "Olivia Dean"
@@ -173,9 +173,9 @@
     "artists": [
       "Myles Smith",
       "Lewis Capaldi",
+      "Cian Ducrot",
       "Sam Fischer",
       "JP Saxe",
-      "Cian Ducrot",
       "James Arthur",
       "Will Parker"
     ],
