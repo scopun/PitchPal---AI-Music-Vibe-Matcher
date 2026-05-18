@@ -167,8 +167,17 @@ NEVER SUGGEST:
 - Not available: {not_available_str}
 - Deceased: {deceased_str}
 
-SCORES: 0.90+ perfect, 0.80-0.89 strong, 0.70-0.79 reasonable. Below 0.70 = exclude.
-Return 5-8 matches. Never force weak matches — fewer accurate matches is better than many wrong ones."""
+SCORING — ABSOLUTE RULES:
+- 0.90+ = Strong Match (sonic world, mood, production all align perfectly)
+- 0.80-0.89 = Good Match (clear sonic alignment, strong fit)
+- 0.70-0.79 = Worth Considering (adjacent world, may suit with adjustment)
+- Below 0.70 = EXCLUDE — do not return
+
+Return 5-8 matches MAXIMUM, sorted by score (highest first).
+Never force weak matches. If fewer than 3 artists genuinely fit at 0.80+, return only those.
+
+Be CONSERVATIVE with scores. Default to lower scores when uncertain.
+A 0.95 score should be reserved for absolutely perfect matches only."""
 
     user_message = f"""Mode: {mode}
 
@@ -183,6 +192,7 @@ Return ONLY valid JSON:
             "territory": "UK or International",
             "source": "Who's Looking" or "Industry Match",
             "final_score": 0.88,
+            "confidence_level": "Good Match",
             "reason": "Why this artist fits this specific song.",
             "genre_fit": "Sonic alignment",
             "brief_match": "How song fits their world"
@@ -199,7 +209,7 @@ Return ONLY valid JSON:
         response = anthropic_client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=4000,
-            temperature=0.1,
+            temperature=0,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
         )
@@ -209,7 +219,29 @@ Return ONLY valid JSON:
 
         if json_match:
             try:
-                return json.loads(json_match.group(0))
+                result = json.loads(json_match.group(0))
+                matches = result.get("matches", [])
+
+                for m in matches:
+                    score = m.get("final_score", 0)
+                    if score >= 0.90:
+                        m["confidence_level"] = "Strong Match"
+                    elif score >= 0.80:
+                        m["confidence_level"] = "Good Match"
+                    else:
+                        m["confidence_level"] = "Worth Considering"
+
+                matches.sort(key=lambda m: m.get("final_score", 0), reverse=True)
+                result["matches"] = matches
+
+                result["match_summary"] = {
+                    "strong_matches": sum(1 for m in matches if m.get("final_score", 0) >= 0.90),
+                    "good_matches": sum(1 for m in matches if 0.80 <= m.get("final_score", 0) < 0.90),
+                    "worth_considering": sum(1 for m in matches if 0.70 <= m.get("final_score", 0) < 0.80),
+                    "total": len(matches)
+                }
+
+                return result
             except:
                 return {"error": "JSON parsing failed", "matches": [], "raw": raw_text}
         return {"error": "No JSON found", "matches": [], "raw": raw_text}
