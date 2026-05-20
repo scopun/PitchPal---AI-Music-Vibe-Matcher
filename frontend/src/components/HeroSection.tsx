@@ -1,11 +1,42 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useGoogleLogin } from '@react-oauth/google'
+import { useGoogleLogin, type CodeResponse, type TokenResponse as GoogleTokenResponse } from '@react-oauth/google'
 import { ThemeImages } from '../assets/images'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../services/api'
 import { forgotPassword, login as loginRequest, loginWithGoogle, signup as signupRequest } from '../services/auth'
 import InlineAlert from './InlineAlert'
+
+const GOOGLE_ENABLED = !!((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? '').trim()
+
+// Wraps the existing custom-styled Google button with the useGoogleLogin hook.
+// Rendered only when a Google client id is configured (see App.tsx) so the
+// hook's internal effect doesn't crash on empty client_id.
+function GoogleSignInButton({
+  disabled,
+  className,
+  onSuccess,
+  onError,
+  children,
+}: {
+  disabled: boolean
+  className: string
+  onSuccess: (token: Omit<GoogleTokenResponse, 'error' | 'error_description' | 'error_uri'>) => void
+  onError: (err?: Pick<CodeResponse, 'error' | 'error_description' | 'error_uri'>) => void
+  children: React.ReactNode
+}) {
+  const trigger = useGoogleLogin({ onSuccess, onError })
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => { if (!disabled) trigger() }}
+      className={className}
+    >
+      {children}
+    </button>
+  )
+}
 
 interface HeroSectionProps {
   isDark: boolean
@@ -154,33 +185,32 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
     }
   }
 
-  // Google OAuth — opens Google's popup, exchanges the access token with our
-  // backend for a PitchPal JWT, then signs the user in. Same handler is used
-  // for both Login and Sign up flows (Google itself handles the distinction).
-  const triggerGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setError(null)
-      setSubmitting(true)
-      try {
-        const result = await loginWithGoogle(tokenResponse.access_token)
-        signIn(result.access_token, result.user)
-        navigate('/upload')
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Google sign-in failed. Please try again.')
-      } finally {
-        setSubmitting(false)
-      }
-    },
-    onError: () => {
-      setSubmitting(false)
-      setError('Google sign-in was cancelled or failed. Please try again.')
-    },
-  })
-
-  const handleGoogleClick = () => {
-    if (submitting) return
+  // Google OAuth success — exchange access token with our backend for a
+  // PitchPal JWT, then sign in. Same handler is used for both Login and
+  // Sign up flows (Google itself handles the distinction).
+  async function handleGoogleSuccess(tokenResponse: { access_token: string }) {
     setError(null)
-    triggerGoogleLogin()
+    setSubmitting(true)
+    try {
+      const result = await loginWithGoogle(tokenResponse.access_token)
+      signIn(result.access_token, result.user)
+      navigate('/upload')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Google sign-in failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function handleGoogleError() {
+    setSubmitting(false)
+    setError('Google sign-in was cancelled or failed. Please try again.')
+  }
+
+  // Click handler for the no-op fallback button when Google isn't configured
+  // (e.g. missing VITE_GOOGLE_CLIENT_ID in this environment).
+  function handleGoogleDisabled() {
+    setError('Google sign-in is not configured for this environment yet. Please use email instead.')
   }
 
   const handleAppleClick = () => {
@@ -328,17 +358,31 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
 
           {/* Social buttons */}
           <div className="flex flex-col md:flex-row gap-[14px] w-full">
-            <button
-              type="button"
-              onClick={handleGoogleClick}
-              disabled={submitting}
-              className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
-            >
-              <div className="size-5 relative shrink-0">
-                <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
-              </div>
-              <span>{socialLabel} with Google</span>
-            </button>
+            {GOOGLE_ENABLED ? (
+              <GoogleSignInButton
+                disabled={submitting}
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+              >
+                <div className="size-5 relative shrink-0">
+                  <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
+                </div>
+                <span>{socialLabel} with Google</span>
+              </GoogleSignInButton>
+            ) : (
+              <button
+                type="button"
+                onClick={handleGoogleDisabled}
+                disabled={submitting}
+                className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+              >
+                <div className="size-5 relative shrink-0">
+                  <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
+                </div>
+                <span>{socialLabel} with Google</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleAppleClick}
@@ -428,17 +472,31 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
 
           {/* Social buttons */}
           <div className="flex flex-col md:flex-row gap-[14px] w-full">
-            <button
-              type="button"
-              onClick={handleGoogleClick}
-              disabled={submitting}
-              className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
-            >
-              <div className="size-5 relative shrink-0">
-                <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
-              </div>
-              <span>Login with Google</span>
-            </button>
+            {GOOGLE_ENABLED ? (
+              <GoogleSignInButton
+                disabled={submitting}
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+              >
+                <div className="size-5 relative shrink-0">
+                  <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
+                </div>
+                <span>Login with Google</span>
+              </GoogleSignInButton>
+            ) : (
+              <button
+                type="button"
+                onClick={handleGoogleDisabled}
+                disabled={submitting}
+                className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+              >
+                <div className="size-5 relative shrink-0">
+                  <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
+                </div>
+                <span>Login with Google</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleAppleClick}

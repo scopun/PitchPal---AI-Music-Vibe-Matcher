@@ -14,24 +14,31 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import ScrollToTop from './components/ScrollToTop'
 import LogoutOverlay from './components/LogoutOverlay'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import type { ReactNode } from 'react'
 
 function GlobalLogoutOverlay({ isDark }: { isDark: boolean }) {
   const { loggingOut } = useAuth()
   return loggingOut ? <LogoutOverlay isDark={isDark} /> : null
 }
 
-// `useGoogleLogin` requires being inside <GoogleOAuthProvider>, so we always
-// mount it. If the client id is missing/empty the provider is still safe to
-// render — the actual OAuth call will just fail at click time and surface a
-// clear error message instead of blanking the whole page.
+// Only mount the Google OAuth provider when a real client id is set. Mounting
+// it with an empty/whitespace id triggers Google's GIS script to throw
+// "Missing required parameter client_id" during component mount which would
+// blank the whole page. With no id we skip the provider entirely — the Google
+// button in LoginCard renders an inert fallback in that case.
 const GOOGLE_CLIENT_ID = ((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? '').trim()
+
+function GoogleAuthShell({ children }: { children: ReactNode }) {
+  if (!GOOGLE_CLIENT_ID) return <>{children}</>
+  return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>
+}
 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
   const onToggleTheme = () => setIsDark(!isDark)
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleAuthShell>
     <BrowserRouter>
       <AuthProvider>
       <div className={isDark ? 'dark' : ''}>
@@ -59,6 +66,6 @@ export default function App() {
       </div>
       </AuthProvider>
     </BrowserRouter>
-    </GoogleOAuthProvider>
+    </GoogleAuthShell>
   )
 }
