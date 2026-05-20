@@ -57,3 +57,10 @@ export function verifyEmail(token: string): Promise<VerifyEmailResponse> {
 export function fetchMe(): Promise<UserResponse> {
   return apiRequest<UserResponse>('/api/v1/auth/me', { auth: true })
 }
+
+export function loginWithGoogle(accessToken: string): Promise<TokenResponse> {
+  return apiRequest<TokenResponse>('/api/v1/auth/google', {
+    method: 'POST',
+    body: { access_token: accessToken },
+  })
+}

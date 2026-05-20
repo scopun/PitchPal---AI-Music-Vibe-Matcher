@@ -45,3 +45,10 @@ class MessageResponse(BaseModel):
 class VerifyEmailResponse(BaseModel):
     message: str
     already_verified: bool
+
+
+class GoogleLoginRequest(BaseModel):
+    # Google OAuth 2.0 access token obtained from the frontend after a
+    # successful Google sign-in popup. Backend verifies it by hitting
+    # Google's userinfo endpoint and trusts the email returned there.
+    access_token: str = Field(min_length=10, max_length=4096)

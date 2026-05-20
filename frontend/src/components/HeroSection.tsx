@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useGoogleLogin } from '@react-oauth/google'
 import { ThemeImages } from '../assets/images'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../services/api'
-import { forgotPassword, login as loginRequest, signup as signupRequest } from '../services/auth'
+import { forgotPassword, login as loginRequest, loginWithGoogle, signup as signupRequest } from '../services/auth'
 import InlineAlert from './InlineAlert'
 
 interface HeroSectionProps {
@@ -153,6 +154,41 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
     }
   }
 
+  // Google OAuth — opens Google's popup, exchanges the access token with our
+  // backend for a PitchPal JWT, then signs the user in. Same handler is used
+  // for both Login and Sign up flows (Google itself handles the distinction).
+  const triggerGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setError(null)
+      setSubmitting(true)
+      try {
+        const result = await loginWithGoogle(tokenResponse.access_token)
+        signIn(result.access_token, result.user)
+        navigate('/upload')
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Google sign-in failed. Please try again.')
+      } finally {
+        setSubmitting(false)
+      }
+    },
+    onError: () => {
+      setSubmitting(false)
+      setError('Google sign-in was cancelled or failed. Please try again.')
+    },
+  })
+
+  const handleGoogleClick = () => {
+    if (submitting) return
+    setError(null)
+    triggerGoogleLogin()
+  }
+
+  const handleAppleClick = () => {
+    // Apple Sign In requires a paid Apple Developer account ($99/year). Not
+    // wired up in Phase 1 — surface a clear message instead of failing silently.
+    setError('Apple sign-in is coming soon. Please use Google or email for now.')
+  }
+
   const inputCls = isDark
     ? 'bg-white/[0.06] border border-white/[0.1] text-white placeholder:text-white/40'
     : 'border border-[rgba(129,55,246,0.3)] text-pp-navy placeholder:text-pp-navy/50'
@@ -292,13 +328,23 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
 
           {/* Social buttons */}
           <div className="flex flex-col md:flex-row gap-[14px] w-full">
-            <button className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap`}>
+            <button
+              type="button"
+              onClick={handleGoogleClick}
+              disabled={submitting}
+              className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+            >
               <div className="size-5 relative shrink-0">
                 <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
               </div>
               <span>{socialLabel} with Google</span>
             </button>
-            <button className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap`}>
+            <button
+              type="button"
+              onClick={handleAppleClick}
+              disabled={submitting}
+              className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+            >
               <div className="h-5 w-4 relative shrink-0">
                 <img src={imgs.appleLogo} alt="Apple" className="absolute inset-0 w-full h-full object-contain" />
               </div>
@@ -382,13 +428,23 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
 
           {/* Social buttons */}
           <div className="flex flex-col md:flex-row gap-[14px] w-full">
-            <button className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap`}>
+            <button
+              type="button"
+              onClick={handleGoogleClick}
+              disabled={submitting}
+              className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+            >
               <div className="size-5 relative shrink-0">
                 <img src={imgs.googleLogo} alt="Google" className="absolute inset-0 w-full h-full object-contain" />
               </div>
               <span>Login with Google</span>
             </button>
-            <button className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap`}>
+            <button
+              type="button"
+              onClick={handleAppleClick}
+              disabled={submitting}
+              className={`${googleBtnCls} pp-btn-lift-soft flex items-center justify-center gap-2 py-[14px] xl:py-4 xl:h-[54px] flex-1 min-w-0 rounded-[12px] px-3 font-medium font-poppins text-[14px] whitespace-nowrap disabled:opacity-60 disabled:pointer-events-none`}
+            >
               <div className="h-5 w-4 relative shrink-0">
                 <img src={imgs.appleLogo} alt="Apple" className="absolute inset-0 w-full h-full object-contain" />
               </div>

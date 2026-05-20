@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+import requests
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -16,6 +17,7 @@ from app.core.security import (
 from app.models.user import User
 from app.schemas.auth import (
     ForgotPasswordRequest,
+    GoogleLoginRequest,
     LoginRequest,
     MessageResponse,
     ResetPasswordRequest,
@@ -163,6 +165,72 @@ async def verify_email(
         message="Email already verified." if already_verified else "Email verified.",
         already_verified=already_verified,
     )
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_login(
+    payload: GoogleLoginRequest,
+    session: AsyncSession = Depends(get_session),
+) -> TokenResponse:
+    """Exchange a Google OAuth access token for a PitchPal JWT.
+
+    The frontend obtains the access token via the Google Identity Services
+    popup. We verify it by hitting Google's own userinfo endpoint — that
+    confirms the token is genuine and lets us extract the email + verified
+    flag without storing the user's Google password.
+    """
+    try:
+        resp = requests.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {payload.access_token}"},
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not reach Google to verify sign-in. Please try again.",
+        ) from exc
+
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google sign-in could not be verified. Please try again.",
+        )
+
+    info = resp.json() or {}
+    raw_email = info.get("email")
+    if not raw_email or not info.get("email_verified"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your Google account email is not verified.",
+        )
+
+    email = _normalize_email(raw_email)
+
+    user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+
+    if user is None:
+        # First time sign-in via Google — provision a new account. We store an
+        # unusable random hash for the password column so password login can't
+        # accidentally succeed; they can switch to password via "Forgot
+        # password" later if they want both methods.
+        user = User(
+            email=email,
+            hashed_password=hash_password(generate_url_token()),
+            email_verified=True,  # Google has already verified the email
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+    elif not user.email_verified:
+        # Existing PitchPal account that signed up with password but never
+        # verified — Google's verification covers ours, so flip the flag.
+        user.email_verified = True
+        await session.commit()
+        await session.refresh(user)
+
+    token = create_access_token(user.id)
+    return TokenResponse(access_token=token, user=UserResponse.model_validate(user))
 
 
 @router.get("/me", response_model=UserResponse)
