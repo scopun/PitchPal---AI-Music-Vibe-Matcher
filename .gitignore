@@ -136,6 +136,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.*.local
 .envrc
 .venv
 env/
@@ -212,6 +214,11 @@ backend/venv/
 __pycache__/
 *.pyc
 .DS_Store
+*.zip
 backend_code.zip
 temp_auto_push.bat
 temp_interactive_push.bat
+
+# Local backups / archives — never commit
+frontend_backup/
+frontend/dist/

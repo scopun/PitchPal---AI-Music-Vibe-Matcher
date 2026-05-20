@@ -1,13 +1,22 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.api.v1 import analyze
+from app.api.v1 import auth, tracks, pitches
 from app.core.config import settings
 from app.core.database import load_database, artist_db_cache
+from app.core.db import init_models
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_database()
+    try:
+        await init_models()
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Database init failed: %s", exc)
     yield
     artist_db_cache.clear()
 
@@ -33,7 +42,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
+app.include_router(tracks.router, prefix="/api/v1", tags=["Tracks"])
+app.include_router(pitches.router, prefix="/api/v1", tags=["Pitches"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 
 @app.get("/")
 def root():

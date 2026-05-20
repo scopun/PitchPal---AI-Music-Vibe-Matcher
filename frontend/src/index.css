@@ -53,6 +53,37 @@ body {
     .card-swap-in { animation: none; }
   }
 
+  /* Logout overlay — soft fade-in when sign-out animation appears. */
+  @keyframes pp-logout-fade-in {
+    0%   { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
+    100% { opacity: 1; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  }
+  .pp-logout-fade-in {
+    animation: pp-logout-fade-in 280ms ease-out both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pp-logout-fade-in { animation: none; }
+  }
+
+  /* Confirm dialog — backdrop fade + card scale-in. */
+  @keyframes pp-confirm-fade-in {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  .pp-confirm-fade-in {
+    animation: pp-confirm-fade-in 180ms ease-out both;
+  }
+  @keyframes pp-confirm-scale-in {
+    0%   { opacity: 0; transform: scale(0.92) translateY(8px); }
+    100% { opacity: 1; transform: scale(1)    translateY(0); }
+  }
+  .pp-confirm-scale-in {
+    animation: pp-confirm-scale-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pp-confirm-fade-in, .pp-confirm-scale-in { animation: none; }
+  }
+
   /* Analysing — equalizer bars (mimics a track playing). 12 bars,
      each with its own delay below so the wave moves continuously. */
   @keyframes pp-eq-bar {

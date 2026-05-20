@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 import AboutUsPage from './pages/AboutUsPage'
 import UploadPage from './pages/UploadPage'
 import HowItWorksPage from './pages/HowItWorksPage'
@@ -10,6 +11,13 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsOfServicePage from './pages/TermsOfServicePage'
 import ContactPage from './pages/ContactPage'
 import ScrollToTop from './components/ScrollToTop'
+import LogoutOverlay from './components/LogoutOverlay'
+import { AuthProvider, useAuth } from './context/AuthContext'
+
+function GlobalLogoutOverlay({ isDark }: { isDark: boolean }) {
+  const { loggingOut } = useAuth()
+  return loggingOut ? <LogoutOverlay isDark={isDark} /> : null
+}
 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
@@ -17,11 +25,14 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <AuthProvider>
       <div className={isDark ? 'dark' : ''}>
         <ScrollToTop />
+        <GlobalLogoutOverlay isDark={isDark} />
         <Routes>
           <Route path="/" element={<HomePage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/reset-password" element={<ResetPasswordPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
+          <Route path="/verify-email" element={<VerifyEmailPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/about-us" element={<AboutUsPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/upload" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/dashboard" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
@@ -38,6 +49,7 @@ export default function App() {
           <Route path="/contact" element={<ContactPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
         </Routes>
       </div>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

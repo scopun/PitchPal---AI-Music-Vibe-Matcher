@@ -1,6 +1,7 @@
 import { useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ThemeImages } from '../assets/images'
+import { useAuth } from '../context/AuthContext'
 
 interface NavbarProps {
   isDark: boolean
@@ -8,18 +9,40 @@ interface NavbarProps {
   onToggleTheme: () => void
 }
 
-const navLinks = ['About Us', 'How it works', "Who it's for", 'Sign in']
+const baseNavLinks = ['About Us', 'How it works', "Who it's for"] as const
 
 export default function Navbar({ isDark, imgs, onToggleTheme }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
+  const { user, triggerSignOut } = useAuth()
+  const isLoggedIn = user !== null
+
+  // Guest sees Sign in; signed-in user sees Dashboard in the same slot.
+  const navLinks = isLoggedIn ? [...baseNavLinks, 'Dashboard'] : [...baseNavLinks, 'Sign in']
 
   const handleNavClick = (link: string) => {
     if (link === 'About Us') navigate('/about-us')
     else if (link === 'How it works') navigate('/how-it-works')
     else if (link === "Who it's for") navigate('/who-its-for')
+    else if (link === 'Dashboard') navigate('/upload')
+    else if (link === 'Sign in') navigate('/')
     else navigate('/')
     setMobileOpen(false)
+  }
+
+  const handleSignupCta = () => {
+    navigate('/', { state: { initialView: 'signup' } })
+    setMobileOpen(false)
+  }
+
+  const handleGoToDashboard = () => {
+    navigate('/upload')
+    setMobileOpen(false)
+  }
+
+  const handleLogout = () => {
+    setMobileOpen(false)
+    triggerSignOut()
   }
 
   const linkCls = isDark
@@ -35,6 +58,10 @@ export default function Navbar({ isDark, imgs, onToggleTheme }: NavbarProps) {
     : 'bg-[rgba(129,55,246,0.1)]'
 
   const closeStroke = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(38,17,74,0.6)'
+
+  const logoutBtnCls = isDark
+    ? 'bg-white/[0.04] border border-white/[0.15] text-white/85 hover:bg-white/[0.08]'
+    : 'bg-white border border-[rgba(129,55,246,0.2)] text-pp-navy hover:bg-[rgba(129,55,246,0.04)]'
 
   return (
     <div className="sticky top-0 z-50 w-full">
@@ -80,13 +107,32 @@ export default function Navbar({ isDark, imgs, onToggleTheme }: NavbarProps) {
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => { navigate('/', { state: { initialView: 'signup' } }); setMobileOpen(false) }}
-            className="gradient-btn pp-btn-lift border border-white/[0.06] text-white text-[11px] md:text-[13px] font-medium font-poppins px-4 md:px-5 py-[8px] md:py-[9px] rounded-[10px] whitespace-nowrap cursor-pointer"
-          >
-            Create account
-          </button>
+          {isLoggedIn ? (
+            <>
+              <button
+                type="button"
+                onClick={handleGoToDashboard}
+                className="gradient-btn pp-btn-lift border border-white/[0.06] text-white text-[11px] md:text-[13px] font-medium font-poppins px-4 md:px-5 py-[8px] md:py-[9px] rounded-[10px] whitespace-nowrap cursor-pointer"
+              >
+                Go to Dashboard
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={`${logoutBtnCls} pp-btn-lift-soft text-[11px] md:text-[13px] font-medium font-poppins px-3 md:px-4 py-[8px] md:py-[9px] rounded-[10px] whitespace-nowrap cursor-pointer hidden md:inline-flex items-center`}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSignupCta}
+              className="gradient-btn pp-btn-lift border border-white/[0.06] text-white text-[11px] md:text-[13px] font-medium font-poppins px-4 md:px-5 py-[8px] md:py-[9px] rounded-[10px] whitespace-nowrap cursor-pointer"
+            >
+              Create account
+            </button>
+          )}
 
           {/* Theme toggle — hidden on mobile */}
           <button
@@ -140,6 +186,20 @@ export default function Navbar({ isDark, imgs, onToggleTheme }: NavbarProps) {
                 <div className={`h-px w-full ${dividerCls}`} />
               </Fragment>
             ))}
+            {/* Logout — mobile only, when signed in */}
+            {isLoggedIn && (
+              <Fragment>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className={`font-poppins font-medium text-[14px] tracking-[0.14px] text-left bg-transparent border-0 p-0 cursor-pointer`}
+                  style={{ color: isDark ? '#FF8A8A' : '#C73030' }}
+                >
+                  Logout
+                </button>
+                <div className={`h-px w-full ${dividerCls}`} />
+              </Fragment>
+            )}
             {/* Theme toggle button */}
             <button
               onClick={() => { onToggleTheme(); setMobileOpen(false) }}
