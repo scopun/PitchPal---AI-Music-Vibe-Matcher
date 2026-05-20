@@ -271,6 +271,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const [myTracks, setMyTracks] = useState<TrackSummary[]>([])
   const [loadingMyTracks, setLoadingMyTracks] = useState(false)
   const [myTracksError, setMyTracksError] = useState<string | null>(null)
+  const [tracksLoadedOnce, setTracksLoadedOnce] = useState(false)
   const [pitches, setPitches] = useState<Pitch[]>([])
   const [loadingPitches, setLoadingPitches] = useState(false)
   const [pitchesError, setPitchesError] = useState<string | null>(null)
@@ -297,6 +298,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     try {
       const data = await apiListTracks()
       setMyTracks(data)
+      setTracksLoadedOnce(true)
     } catch (err) {
       setMyTracksError(err instanceof ApiError ? err.message : 'Could not load your tracks.')
     } finally {
@@ -520,6 +522,26 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
       clearAbort()
     }
   }, [])
+
+  // If the user is viewing results for a track that no longer exists (e.g. they
+  // deleted it from My Tracks, or had stale state from another session), reset
+  // the My Matches view back to the upload drop zone. Guarded by
+  // `tracksLoadedOnce` so we don't reset before we've actually fetched the
+  // list.
+  useEffect(() => {
+    if (
+      view === 'results' &&
+      tracksLoadedOnce &&
+      matchResult?.track_id !== undefined &&
+      !myTracks.some((t) => t.id === matchResult.track_id)
+    ) {
+      setMatchResult(null)
+      setUploadedFile(null)
+      setMatchError(null)
+      setValidationError(null)
+      setView('drop')
+    }
+  }, [view, matchResult, myTracks, tracksLoadedOnce])
 
   const handleFile = async (file: File | null | undefined) => {
     if (!file) return
