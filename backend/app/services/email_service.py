@@ -191,3 +191,31 @@ def send_password_reset_email(email: str, token: str) -> None:
         footer_note="If you didn't request a password reset, you can safely ignore this email and your password will stay the same.",
     )
     _send(email, "Reset your PitchPal password", html)
+
+
+def send_oauth_welcome_email(email: str, provider: str = "Google") -> None:
+    """Send a no-verification welcome email after social sign-up.
+
+    The OAuth provider has already verified the email, so this email has no
+    "verify" link — it just welcomes the user and points them at the
+    dashboard.
+    """
+    dashboard_link = settings.FRONTEND_URL.rstrip("/") + "/upload"
+    html = _render_branded_email(
+        preheader=f"Welcome to PitchPal! Your account is ready via {provider}.",
+        eyebrow="Welcome to PitchPal",
+        headline="You're all set",
+        intro=(
+            f"Thanks for joining PitchPal via {provider}. Your account is ready "
+            "and your email is already verified — no extra step needed. Jump "
+            "into your dashboard to upload your first track and find the "
+            "artists looking for songs like yours."
+        ),
+        button_label="Go to dashboard",
+        button_url=dashboard_link,
+        footer_note=(
+            f"If you didn't sign in with {provider}, please secure your "
+            f"{provider} account immediately and ignore this email."
+        ),
+    )
+    _send(email, "Welcome to PitchPal", html)
