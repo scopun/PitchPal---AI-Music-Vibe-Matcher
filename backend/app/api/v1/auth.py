@@ -26,7 +26,11 @@ from app.schemas.auth import (
     UserResponse,
     VerifyEmailResponse,
 )
-from app.services.email_service import send_password_reset_email, send_verification_email
+from app.services.email_service import (
+    send_oauth_welcome_email,
+    send_password_reset_email,
+    send_verification_email,
+)
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -170,6 +174,7 @@ async def verify_email(
 @router.post("/google", response_model=TokenResponse)
 async def google_login(
     payload: GoogleLoginRequest,
+    background: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:
     """Exchange a Google OAuth access token for a PitchPal JWT.
@@ -222,6 +227,9 @@ async def google_login(
         session.add(user)
         await session.commit()
         await session.refresh(user)
+        # First-time sign-up via Google → send a welcome email (no verify link
+        # needed since Google already verified the address).
+        background.add_task(send_oauth_welcome_email, email, "Google")
     elif not user.email_verified:
         # Existing PitchPal account that signed up with password but never
         # verified — Google's verification covers ours, so flip the flag.
