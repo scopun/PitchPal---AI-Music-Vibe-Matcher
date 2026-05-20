@@ -10,6 +10,7 @@ import WhoItsForPage from './pages/WhoItsForPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsOfServicePage from './pages/TermsOfServicePage'
 import ContactPage from './pages/ContactPage'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import ScrollToTop from './components/ScrollToTop'
 import LogoutOverlay from './components/LogoutOverlay'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -19,11 +20,14 @@ function GlobalLogoutOverlay({ isDark }: { isDark: boolean }) {
   return loggingOut ? <LogoutOverlay isDark={isDark} /> : null
 }
 
+const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? ''
+
 export default function App() {
   const [isDark, setIsDark] = useState(true)
   const onToggleTheme = () => setIsDark(!isDark)
 
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <BrowserRouter>
       <AuthProvider>
       <div className={isDark ? 'dark' : ''}>
@@ -51,5 +55,6 @@ export default function App() {
       </div>
       </AuthProvider>
     </BrowserRouter>
+    </GoogleOAuthProvider>
   )
 }
