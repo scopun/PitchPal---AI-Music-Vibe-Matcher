@@ -1,5 +1,26 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { ApiError } from '../services/api'
+import ConfirmDialog from '../components/ConfirmDialog'
+import {
+  matchTrack,
+  validateAudioFile,
+  type MatchResponse,
+  type MatchItem,
+} from '../services/match'
+import {
+  deleteTrack as apiDeleteTrack,
+  getTrack as apiGetTrack,
+  listTracks as apiListTracks,
+  type TrackSummary,
+} from '../services/tracks'
+import {
+  createPitch as apiCreatePitch,
+  deletePitch as apiDeletePitch,
+  listPitches as apiListPitches,
+  type Pitch,
+} from '../services/pitches'
 
 // Dark icons
 import darkLogo from '../assets/icons/dark/upload/Logo.svg'
@@ -236,8 +257,207 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const goToTab = (key: SidebarKey) => navigate(PATH_BY_KEY[key])
   const tabMeta = TAB_META[activeItem]
   const [drawerOpen, setDrawerOpen] = useState(false)
-  // Desktop-only topbar popover: 'messages' | 'notifications' | null
-  const [openPopover, setOpenPopover] = useState<'messages' | 'notifications' | null>(null)
+  // Desktop-only topbar popover: 'messages' | 'notifications' | 'profile' | null
+  const [openPopover, setOpenPopover] = useState<'messages' | 'notifications' | 'profile' | null>(null)
+  const { triggerSignOut } = useAuth()
+
+  const handleLogout = () => {
+    setOpenPopover(null)
+    setDrawerOpen(false)
+    triggerSignOut()
+  }
+
+  // My Tracks + Pitches Sent: per-user lists fetched from the backend.
+  const [myTracks, setMyTracks] = useState<TrackSummary[]>([])
+  const [loadingMyTracks, setLoadingMyTracks] = useState(false)
+  const [myTracksError, setMyTracksError] = useState<string | null>(null)
+  const [pitches, setPitches] = useState<Pitch[]>([])
+  const [loadingPitches, setLoadingPitches] = useState(false)
+  const [pitchesError, setPitchesError] = useState<string | null>(null)
+  // Track which match cards have already been pitched in the current session
+  // so we can flip the Pitch button to a "Pitched" state instantly.
+  const [pitchedArtistKeys, setPitchedArtistKeys] = useState<Set<string>>(new Set())
+
+  // Themed confirm dialog state — replaces browser window.confirm.
+  type ConfirmRequest = {
+    title: string
+    message: string
+    confirmLabel?: string
+    cancelLabel?: string
+    loadingLabel?: string
+    danger?: boolean
+    onConfirm: () => void | Promise<void>
+  }
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmRequest | null>(null)
+  const [confirmLoading, setConfirmLoading] = useState(false)
+
+  const refreshMyTracks = async () => {
+    setLoadingMyTracks(true)
+    setMyTracksError(null)
+    try {
+      const data = await apiListTracks()
+      setMyTracks(data)
+    } catch (err) {
+      setMyTracksError(err instanceof ApiError ? err.message : 'Could not load your tracks.')
+    } finally {
+      setLoadingMyTracks(false)
+    }
+  }
+
+  const refreshPitches = async () => {
+    setLoadingPitches(true)
+    setPitchesError(null)
+    try {
+      const data = await apiListPitches()
+      setPitches(data)
+      // Hydrate the pitched-artist set so the Pitch buttons stay disabled
+      // across page navigations.
+      setPitchedArtistKeys(new Set(data.map((p) => `${p.track_id}:${p.artist_name.toLowerCase()}`)))
+    } catch (err) {
+      setPitchesError(err instanceof ApiError ? err.message : 'Could not load your pitches.')
+    } finally {
+      setLoadingPitches(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeItem === 'my-tracks') void refreshMyTracks()
+  }, [activeItem])
+
+  useEffect(() => {
+    if (activeItem === 'pitches-sent') void refreshPitches()
+  }, [activeItem])
+
+  // Hydrate tracks + pitches once on mount so the sidebar badges and the
+  // Pitch buttons in the results view reflect reality from the moment the
+  // dashboard loads — even if the user hasn't opened those tabs yet.
+  useEffect(() => {
+    void refreshMyTracks()
+    void refreshPitches()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const openSavedTrack = async (trackId: number) => {
+    try {
+      const detail = await apiGetTrack(trackId)
+      if (detail.match_data) {
+        // Inject track_id so Pitch buttons can save against this track.
+        const result: MatchResponse = { ...detail.match_data, track_id: detail.id }
+        setUploadedFile(null)
+        setMatchResult(result)
+        setMatchError(null)
+        setValidationError(null)
+        setView('results')
+        goToTab('my-matches')
+      }
+    } catch (err) {
+      setMyTracksError(err instanceof ApiError ? err.message : 'Could not open this track.')
+    }
+  }
+
+  const removeTrack = (trackId: number) => {
+    const track = myTracks.find((t) => t.id === trackId)
+    const nameLine = track ? ` "${track.filename}"` : ''
+    setPendingConfirm({
+      title: 'Delete this track?',
+      message: `This track${nameLine} and all its pitches will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Delete track',
+      loadingLabel: 'Deleting…',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmLoading(true)
+        try {
+          await apiDeleteTrack(trackId)
+          setMyTracks((prev) => prev.filter((t) => t.id !== trackId))
+          // Backend cascade-deletes pitches for this track — clean local state
+          // too so the sidebar badge + Pitches Sent list stay in sync.
+          setPitches((prev) => prev.filter((p) => p.track_id !== trackId))
+          setPitchedArtistKeys((prev) => {
+            const next = new Set<string>()
+            prev.forEach((key) => {
+              if (!key.startsWith(`${trackId}:`)) next.add(key)
+            })
+            return next
+          })
+          setPendingConfirm(null)
+        } catch (err) {
+          setMyTracksError(err instanceof ApiError ? err.message : 'Could not delete this track.')
+          setPendingConfirm(null)
+        } finally {
+          setConfirmLoading(false)
+        }
+      },
+    })
+  }
+
+  const removePitch = (pitchId: number) => {
+    const pitch = pitches.find((p) => p.id === pitchId)
+    const artistLine = pitch ? ` to ${pitch.artist_name}` : ''
+    setPendingConfirm({
+      title: 'Delete this pitch?',
+      message: `Remove this pitch${artistLine} from your list. The artist won't be notified — this just clears the record from PitchPal.`,
+      confirmLabel: 'Delete pitch',
+      loadingLabel: 'Deleting…',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmLoading(true)
+        try {
+          await apiDeletePitch(pitchId)
+          setPitches((prev) => prev.filter((p) => p.id !== pitchId))
+          setPendingConfirm(null)
+        } catch (err) {
+          setPitchesError(err instanceof ApiError ? err.message : 'Could not delete this pitch.')
+          setPendingConfirm(null)
+        } finally {
+          setConfirmLoading(false)
+        }
+      },
+    })
+  }
+
+  // Used by the "Upload new" / "New match" buttons in My Tracks / Pitches Sent.
+  // We reset the matching flow first so the My Matches tab shows the drop view
+  // instead of stale results from a previous track.
+  const goToMatchesForUpload = () => {
+    cancelMatch()
+    goToTab('my-matches')
+  }
+
+  const sendPitch = async (artist: MatchItem, trackId: number): Promise<boolean> => {
+    try {
+      const created = await apiCreatePitch({
+        track_id: trackId,
+        artist_name: artist.artist,
+        artist_image: artist.artist_image ?? null,
+        label: artist.label ?? null,
+        territory: artist.territory ?? null,
+        source: artist.source ?? null,
+        final_score: artist.final_score,
+        confidence_level: artist.confidence_level ?? null,
+      })
+      // Keep sidebar badge + Pitches Sent list in sync without a full refetch.
+      setPitches((prev) => [created, ...prev])
+      setPitchedArtistKeys((prev) => {
+        const next = new Set(prev)
+        next.add(`${trackId}:${artist.artist.toLowerCase()}`)
+        return next
+      })
+      return true
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Could not save this pitch.'
+      // Treat duplicates as success — the artist was already pitched.
+      if (err instanceof ApiError && err.status === 409) {
+        setPitchedArtistKeys((prev) => {
+          const next = new Set(prev)
+          next.add(`${trackId}:${artist.artist.toLowerCase()}`)
+          return next
+        })
+        return true
+      }
+      window.alert(message)
+      return false
+    }
+  }
 
   // Close the desktop popover on outside-click, route change, or Escape.
   useEffect(() => {
@@ -261,36 +481,117 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [analysingStep, setAnalysingStep] = useState(0)
-  const [view, setView] = useState<'drop' | 'analysing' | 'results'>('drop')
+  const [view, setView] = useState<'drop' | 'analysing' | 'results' | 'error'>('drop')
+  const [matchResult, setMatchResult] = useState<MatchResponse | null>(null)
+  const [matchError, setMatchError] = useState<string | null>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const completeTimerRef = useRef<number | null>(null)
 
-  // Animate analysing steps 1-by-1 then show results
+  // Step progress while the real API request is in flight.
+  // We advance through steps 1-3 on a timer (so the user always sees motion),
+  // but step 4 + transition to the results view are gated on the actual
+  // backend response. If the request finishes before the timer reaches step 3,
+  // we hold there until the timer catches up; if the timer reaches step 3
+  // before the request finishes, we wait for the request.
   useEffect(() => {
     if (view !== 'analysing') return
     const timers: number[] = []
-    timers.push(window.setTimeout(() => setAnalysingStep(1), 900))
-    timers.push(window.setTimeout(() => setAnalysingStep(2), 1900))
-    timers.push(window.setTimeout(() => setAnalysingStep(3), 2900))
-    timers.push(window.setTimeout(() => setAnalysingStep(4), 3900))
-    timers.push(window.setTimeout(() => setView('results'), 4700))
+    timers.push(window.setTimeout(() => setAnalysingStep(1), 800))
+    timers.push(window.setTimeout(() => setAnalysingStep(2), 1800))
+    timers.push(window.setTimeout(() => setAnalysingStep(3), 3200))
     return () => timers.forEach((t) => window.clearTimeout(t))
   }, [view])
 
-  const ALLOWED_EXT = ['mp3', 'wav', 'flac', 'aac', 'm4a']
+  const clearAbort = () => {
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
+    if (completeTimerRef.current !== null) {
+      window.clearTimeout(completeTimerRef.current)
+      completeTimerRef.current = null
+    }
+  }
 
-  const handleFile = (file: File | null | undefined) => {
+  useEffect(() => {
+    return () => {
+      clearAbort()
+    }
+  }, [])
+
+  const handleFile = async (file: File | null | undefined) => {
     if (!file) return
-    const ext = file.name.split('.').pop()?.toLowerCase() || ''
-    if (!ALLOWED_EXT.includes(ext)) return
+
+    const validation = validateAudioFile(file)
+    if (validation) {
+      setValidationError(validation)
+      return
+    }
+    setValidationError(null)
+
+    // Abort any in-flight request before starting a new one.
+    clearAbort()
+
+    setMatchError(null)
+    setMatchResult(null)
     setUploadedFile(file)
     setAnalysingStep(0)
     setView('analysing')
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      const result = await matchTrack(file, controller.signal)
+      if (controller.signal.aborted) return
+      setMatchResult(result)
+      setAnalysingStep(4)
+      // Refresh sidebar tracks badge to reflect the newly-saved track.
+      void refreshMyTracks()
+      // Brief beat so the user actually sees the "all steps done" state
+      // before the results view appears.
+      completeTimerRef.current = window.setTimeout(() => {
+        setView('results')
+        completeTimerRef.current = null
+      }, 650)
+    } catch (err) {
+      if (controller.signal.aborted) return
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : 'Could not analyse this track. Please try again.'
+      setMatchError(message)
+      setView('error')
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null
+    }
+  }
+
+  const cancelMatch = () => {
+    clearAbort()
+    setUploadedFile(null)
+    setMatchResult(null)
+    setMatchError(null)
+    setAnalysingStep(0)
+    setView('drop')
+  }
+
+  const retryMatch = () => {
+    setMatchError(null)
+    if (uploadedFile) {
+      void handleFile(uploadedFile)
+    } else {
+      setView('drop')
+    }
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
-    handleFile(e.dataTransfer.files?.[0])
+    void handleFile(e.dataTransfer.files?.[0])
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -343,11 +644,14 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
 
   const iconColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(38,17,74,0.7)'
 
+  const tracksBadge = myTracks.length > 0 ? String(myTracks.length) : undefined
+  const pitchesBadge = pitches.length > 0 ? String(pitches.length) : undefined
+
   const sidebarItems: { key: SidebarKey; label: string; icon: string; badge?: string }[] = [
     { key: 'dashboard', label: 'Dashboard', icon: icons.house },
-    { key: 'my-tracks', label: 'My tracks', icon: icons.music, badge: '5' },
+    { key: 'my-tracks', label: 'My tracks', icon: icons.music, badge: tracksBadge },
     { key: 'my-matches', label: 'My matches', icon: icons.target },
-    { key: 'pitches-sent', label: 'Pitches sent', icon: icons.mailCheck },
+    { key: 'pitches-sent', label: 'Pitches sent', icon: icons.mailCheck, badge: pitchesBadge },
   ]
 
   const sidebarFooterItems: { key: SidebarKey; label: string; icon: string }[] = [
@@ -358,9 +662,9 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   // Bottom-nav items (mobile only — main 4)
   const bottomNavItems: { key: SidebarKey; label: string; icon: string; badge?: string }[] = [
     { key: 'dashboard', label: 'Dashboard', icon: icons.house },
-    { key: 'my-tracks', label: 'My tracks', icon: icons.music, badge: '5' },
+    { key: 'my-tracks', label: 'My tracks', icon: icons.music, badge: tracksBadge },
     { key: 'my-matches', label: 'My matches', icon: icons.target },
-    { key: 'pitches-sent', label: 'Pitches sent', icon: icons.mailCheck },
+    { key: 'pitches-sent', label: 'Pitches sent', icon: icons.mailCheck, badge: pitchesBadge },
   ]
 
   // Reusable sidebar renderer.
@@ -431,6 +735,25 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
 
   return (
     <div className={`min-h-screen font-poppins flex ${pageBg}`}>
+      <ConfirmDialog
+        isDark={isDark}
+        open={pendingConfirm !== null}
+        title={pendingConfirm?.title ?? ''}
+        message={pendingConfirm?.message ?? ''}
+        confirmLabel={pendingConfirm?.confirmLabel}
+        cancelLabel={pendingConfirm?.cancelLabel}
+        loadingLabel={pendingConfirm?.loadingLabel}
+        danger={pendingConfirm?.danger}
+        loading={confirmLoading}
+        onConfirm={() => {
+          if (pendingConfirm) void pendingConfirm.onConfirm()
+        }}
+        onCancel={() => {
+          if (confirmLoading) return
+          setPendingConfirm(null)
+        }}
+      />
+
       {/* SIDEBAR — narrow on tablet (md..xl), wide on desktop (xl+) */}
       <aside className={`hidden md:flex flex-col w-[100px] xl:w-[232px] shrink-0 ${sidebarBg}`}>
         {renderSidebar()}
@@ -538,6 +861,32 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                   <span>{item.label}</span>
                 </button>
               ))}
+
+              {/* Logout — mobile/tablet drawer */}
+              <button
+                onClick={handleLogout}
+                className={`${iconBtnCls} flex items-center justify-center gap-3 px-4 h-[48px] rounded-[12px] transition-colors text-[15px] font-medium font-poppins`}
+                style={{ color: isDark ? '#FF8A8A' : '#C73030' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
+                  <path
+                    d="M12.5 14.1667L16.6667 10L12.5 5.83333"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M16.6667 10H7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M9.16667 17.5H5C4.55797 17.5 4.13405 17.3244 3.82149 17.0118C3.50893 16.6993 3.33333 16.2754 3.33333 15.8333V4.16667C3.33333 3.72464 3.50893 3.30072 3.82149 2.98816C4.13405 2.67559 4.55797 2.5 5 2.5H9.16667"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </div>
@@ -640,16 +989,32 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               )}
             </div>
 
-            <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="size-11 rounded-full overflow-hidden shrink-0">
-                <img src={icons.avatar} alt="John Doe" className="size-full object-cover" />
-              </div>
-              <div className="flex flex-col text-left">
-                <p className={`text-[14px] font-semibold font-poppins leading-tight ${textPrimary}`}>John Doe</p>
-                <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>Administrator</p>
-              </div>
-              <img src={icons.chevron} alt="" className="size-3 object-contain ml-1" />
-            </button>
+            <div className="relative">
+              <button
+                data-pp-popover-trigger="profile"
+                onClick={() => setOpenPopover(openPopover === 'profile' ? null : 'profile')}
+                aria-haspopup="menu"
+                aria-expanded={openPopover === 'profile'}
+                className={`flex items-center gap-3 rounded-[10px] px-2 py-1 -mx-2 -my-1 hover:opacity-80 transition-opacity cursor-pointer ${openPopover === 'profile' ? (isDark ? 'bg-white/[0.06]' : 'bg-[rgba(129,55,246,0.08)]') : ''}`}
+              >
+                <div className="size-11 rounded-full overflow-hidden shrink-0">
+                  <img src={icons.avatar} alt="John Doe" className="size-full object-cover" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <p className={`text-[14px] font-semibold font-poppins leading-tight ${textPrimary}`}>John Doe</p>
+                  <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>Administrator</p>
+                </div>
+                <img
+                  src={icons.chevron}
+                  alt=""
+                  className={`size-3 object-contain ml-1 transition-transform ${openPopover === 'profile' ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {openPopover === 'profile' && (
+                <ProfileDropdown isDark={isDark} onLogout={handleLogout} />
+              )}
+            </div>
           </div>
 
           {/* Mobile + Tablet: Hamburger / Close toggle */}
@@ -713,6 +1078,35 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                   <span className="absolute top-[10px] right-[12px] size-[6px] rounded-full bg-pp-blue" />
                 </button>
               </div>
+
+              {/* Divider */}
+              <div className={`mt-5 mb-4 h-px ${isDark ? 'bg-white/[0.06]' : 'bg-[rgba(38,17,74,0.08)]'}`} />
+
+              {/* Logout — tablet drawer */}
+              <button
+                onClick={handleLogout}
+                className={`${iconBtnCls} w-full flex items-center justify-center gap-3 px-4 h-[48px] rounded-[12px] transition-colors text-[14px] font-medium font-poppins cursor-pointer`}
+                style={{ color: isDark ? '#FF8A8A' : '#C73030' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="shrink-0">
+                  <path
+                    d="M12.5 14.1667L16.6667 10L12.5 5.83333"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M16.6667 10H7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M9.16667 17.5H5C4.55797 17.5 4.13405 17.3244 3.82149 17.0118C3.50893 16.6993 3.33333 16.2754 3.33333 15.8333V4.16667C3.33333 3.72464 3.50893 3.30072 3.82149 2.98816C4.13405 2.67559 4.55797 2.5 5 2.5H9.16667"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         )}
@@ -723,12 +1117,41 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           type="file"
           accept=".mp3,.wav,.flac,.aac,.m4a,audio/*"
           className="hidden"
-          onChange={(e) => handleFile(e.target.files?.[0])}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            // Reset the input so picking the same file twice re-triggers onChange.
+            e.target.value = ''
+            void handleFile(file)
+          }}
         />
 
         {/* MAIN CONTENT — analysing view top-aligned on mobile, centered on tablet/desktop; results view top-aligned */}
         <main className={`flex-1 flex justify-center px-4 md:px-8 xl:px-6 py-8 md:py-12 xl:py-${view === 'results' ? '8' : '0'} pb-[100px] md:pb-12 xl:pb-${view === 'results' ? '12' : '0'} ${view === 'analysing' ? 'items-start md:items-center' : view === 'results' ? 'items-start' : 'items-center'} overflow-y-auto`}>
-          {activeItem !== 'my-matches' ? (
+          {activeItem === 'my-tracks' ? (
+            <MyTracksTab
+              isDark={isDark}
+              icons={icons}
+              textPrimary={textPrimary}
+              textMuted={textMuted}
+              tracks={myTracks}
+              loading={loadingMyTracks}
+              error={myTracksError}
+              onOpen={openSavedTrack}
+              onDelete={removeTrack}
+              onUploadNew={goToMatchesForUpload}
+            />
+          ) : activeItem === 'pitches-sent' ? (
+            <PitchesSentTab
+              isDark={isDark}
+              textPrimary={textPrimary}
+              textMuted={textMuted}
+              pitches={pitches}
+              loading={loadingPitches}
+              error={pitchesError}
+              onDelete={removePitch}
+              onUploadNew={goToMatchesForUpload}
+            />
+          ) : activeItem !== 'my-matches' ? (
             /* ── DEMO TAB ── Other sidebar items render a centered placeholder.
                Top-aligned on mobile/tablet, vertically centered on desktop. */
             <div key={activeItem} className="card-swap-in w-full xl:w-[860px] max-w-[860px] flex flex-col items-center text-center gap-[14px] md:gap-[16px] self-start xl:self-center xl:my-auto">
@@ -769,6 +1192,34 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                   Upload your song and PitchPal's AI analyses the audio, extracts lyrics, and surfaces the best-matched artists in seconds.
                 </p>
               </div>
+
+              {/* Validation error — invalid format / too large */}
+              {validationError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-[10px] px-[14px] py-[12px] rounded-[12px] font-poppins -mb-3"
+                  style={{
+                    background: isDark ? 'rgba(255,107,107,0.07)' : 'rgba(220,38,38,0.05)',
+                    border: `1px solid ${isDark ? 'rgba(255,107,107,0.28)' : 'rgba(220,38,38,0.22)'}`,
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="shrink-0 mt-[1px]">
+                    <path
+                      d="M10 17.5C14.1421 17.5 17.5 14.1421 17.5 10C17.5 5.85786 14.1421 2.5 10 2.5C5.85786 2.5 2.5 5.85786 2.5 10C2.5 14.1421 5.85786 17.5 10 17.5Z"
+                      stroke={isDark ? '#FF8A8A' : '#C73030'}
+                      strokeWidth="1.5"
+                    />
+                    <path d="M10 6.25V10.625" stroke={isDark ? '#FF8A8A' : '#C73030'} strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="10" cy="13.5" r="0.85" fill={isDark ? '#FF8A8A' : '#C73030'} />
+                  </svg>
+                  <p
+                    className="text-[13px] font-light leading-[1.5]"
+                    style={{ color: isDark ? '#FFB8B8' : '#B42323' }}
+                  >
+                    {validationError}
+                  </p>
+                </div>
+              )}
 
               {/* Upload dashed box — drop zone */}
               <div
@@ -847,16 +1298,22 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                   'Generating AI insights',
                 ].map((label, idx) => {
                   const state = idx < analysingStep ? 'done' as const : idx === analysingStep ? 'active' as const : 'pending' as const
+                  // Show "done" check on the active step too once the API has
+                  // returned — `matchResult` arriving means matching + insights
+                  // are both finished even if we haven't bumped `analysingStep`
+                  // yet.
+                  const effectiveState =
+                    matchResult && state !== 'done' ? 'done' as const : state
                   let stepIcon: React.ReactNode
                   let textCls = textMuted
-                  if (state === 'done') {
+                  if (effectiveState === 'done') {
                     stepIcon = (
                       <span key="done" className="pp-step-done inline-block">
                         <img src={icons.stepDone} alt="" className="size-6 object-contain" />
                       </span>
                     )
                     textCls = 'text-[#00BB7B]'
-                  } else if (state === 'active') {
+                  } else if (effectiveState === 'active') {
                     stepIcon = (
                       <span key="active" className="pp-step-active inline-block">
                         <img src={icons.stepActive} alt="" className="size-6 object-contain" />
@@ -882,11 +1339,70 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                   )
                 })}
               </div>
+
+              {/* Cancel — let the user abort a long-running analysis. */}
+              <button
+                onClick={cancelMatch}
+                className={`text-[13px] font-medium font-poppins underline underline-offset-4 transition-opacity hover:opacity-80 ${textMuted}`}
+              >
+                Cancel and upload a different track
+              </button>
+            </div>
+          ) : view === 'error' ? (
+            /* ── ERROR VIEW ── */
+            <div key="error" className="card-swap-in w-full xl:w-[640px] max-w-[640px] flex flex-col items-center text-center gap-[28px]">
+              <div
+                className="size-[80px] rounded-[20px] flex items-center justify-center shrink-0"
+                style={{
+                  background: isDark ? 'rgba(255,107,107,0.08)' : 'rgba(220,38,38,0.06)',
+                  border: `1px solid ${isDark ? 'rgba(255,107,107,0.3)' : 'rgba(220,38,38,0.25)'}`,
+                }}
+              >
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke={isDark ? '#FF8A8A' : '#C73030'} strokeWidth="1.6" />
+                  <path d="M12 7.5V13" stroke={isDark ? '#FF8A8A' : '#C73030'} strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="12" cy="16.25" r="1.05" fill={isDark ? '#FF8A8A' : '#C73030'} />
+                </svg>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <h2 className={`text-[26px] xl:text-[30px] font-semibold font-poppins leading-tight ${textPrimary}`}>
+                  We couldn't analyse this track
+                </h2>
+                <p className={`text-[14px] xl:text-[15px] font-light leading-[1.6] font-poppins ${textMuted}`}>
+                  {matchError ?? 'Something went wrong while analysing your track. Please try again.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
+                <button
+                  onClick={retryMatch}
+                  className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[14px] px-5 py-[12px] xl:h-[48px] rounded-[10px] flex items-center justify-center gap-2"
+                >
+                  Try again
+                </button>
+                <button
+                  onClick={cancelMatch}
+                  className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} pp-btn-lift-soft font-medium font-poppins text-[14px] px-5 py-[12px] xl:h-[48px] rounded-[10px] flex items-center justify-center`}
+                >
+                  Upload a different track
+                </button>
+              </div>
             </div>
           ) : (
             /* ── RESULTS VIEW ── */
             <div key="results" className="card-swap-in w-full">
-              <ResultsView isDark={isDark} icons={icons} uploadedFile={uploadedFile} textPrimary={textPrimary} textMuted={textMuted} />
+              <ResultsView
+                isDark={isDark}
+                icons={icons}
+                uploadedFile={uploadedFile}
+                textPrimary={textPrimary}
+                textMuted={textMuted}
+                matchResult={matchResult}
+                onUploadAnother={cancelMatch}
+                onPitch={sendPitch}
+                pitchedKeys={pitchedArtistKeys}
+              />
             </div>
           )}
         </main>
@@ -934,6 +1450,10 @@ interface ResultsViewProps {
   uploadedFile: File | null
   textPrimary: string
   textMuted: string
+  matchResult: MatchResponse | null
+  onUploadAnother: () => void
+  onPitch: (artist: MatchItem, trackId: number) => Promise<boolean>
+  pitchedKeys: Set<string>
 }
 
 interface MatchData {
@@ -947,8 +1467,64 @@ interface MatchData {
   insight: string
   tags: string[]
   listeners: string
-  albums: number
+  albums: string
   ringColor: 'cyan' | 'purple'
+  confidence: string
+  source: string
+  raw: MatchItem
+}
+
+function formatLargeCount(n: number | null | undefined): string {
+  if (n == null || n <= 0) return '—'
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000
+    return `${v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')}M`
+  }
+  if (n >= 1_000) {
+    const v = n / 1_000
+    return `${v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')}K`
+  }
+  return String(n)
+}
+
+function buildMatchData(matches: MatchItem[], icons: { resAvatar1?: string; resAvatar2?: string; resAvatar3?: string; avatar: string }, detectedGenre: string | undefined, genreTags: string[]): MatchData[] {
+  const avatarFallback = [icons.resAvatar1, icons.resAvatar2, icons.resAvatar3].filter(Boolean) as string[]
+  if (avatarFallback.length === 0) avatarFallback.push(icons.avatar)
+
+  return matches.map((m, idx) => {
+    const score = Math.round((m.final_score ?? 0) * 100)
+    const isStrong = (m.confidence_level ?? '') === 'Strong Match' || (m.final_score ?? 0) >= 0.92
+    // Per-match tags: pick a 3-tag mix from the artist's genre_fit + top-level
+    // detected genre + the shared genre_tags so each card still feels distinct.
+    const tagPool: string[] = []
+    if (m.genre_fit) {
+      m.genre_fit.split(/[,/]|\s+\bor\b\s+/i).map((s) => s.trim()).filter(Boolean).forEach((t) => tagPool.push(t))
+    }
+    if (detectedGenre) tagPool.push(detectedGenre)
+    genreTags.forEach((t) => tagPool.push(t))
+    const tags = Array.from(new Set(tagPool.map((t) => t.trim()).filter(Boolean))).slice(0, 3)
+    const territory = m.territory?.trim() || 'International'
+    // Prefer the real Spotify artist photo; fall back to cycling the demo
+    // avatars only when Spotify hasn't enriched this match.
+    const avatar = m.artist_image || avatarFallback[idx % avatarFallback.length]
+    return {
+      id: `${idx}-${(m.artist || 'artist').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      name: m.artist || 'Unnamed artist',
+      genre: m.genre_fit || detectedGenre || '—',
+      location: m.label ? `${territory} • ${m.label}` : territory,
+      match: score,
+      avatar,
+      topMatch: idx === 0 && isStrong,
+      insight: m.brief_match || m.reason || 'No insight provided for this match.',
+      tags: tags.length > 0 ? tags : ['Match'],
+      listeners: formatLargeCount(m.followers),
+      albums: m.albums_count != null && m.albums_count > 0 ? String(m.albums_count) : '—',
+      ringColor: idx % 2 === 0 ? 'cyan' : 'purple',
+      confidence: m.confidence_level || (score >= 92 ? 'Strong Match' : score >= 85 ? 'Good Match' : 'Worth Considering'),
+      source: m.source || 'Industry Match',
+      raw: m,
+    }
+  })
 }
 
 function CircularProgress({ value, color, isDark }: { value: number; color: 'cyan' | 'purple'; isDark: boolean }) {
@@ -1007,16 +1583,16 @@ function CircularProgress({ value, color, isDark }: { value: number; color: 'cya
   )
 }
 
-function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted }: ResultsViewProps) {
-  const [activeFilter, setActiveFilter] = useState<'all' | '90plus' | 'indie' | 'electronic' | 'rnb'>('all')
+function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matchResult, onUploadAnother, onPitch, pitchedKeys }: ResultsViewProps) {
+  const [activeFilter, setActiveFilter] = useState<'all' | '90plus' | 'whoslooking' | 'industry'>('all')
+  const [pitchingArtist, setPitchingArtist] = useState<string | null>(null)
 
   // Sort dropdown — local state + outside-click close.
   const sortOptions = [
     { key: 'compat', label: 'Highest compatibility' },
-    { key: 'mostListeners', label: 'Most monthly listeners' },
-    { key: 'leastListeners', label: 'Lowest monthly listeners' },
-    { key: 'newest', label: 'Newest artists' },
-    { key: 'mostActive', label: 'Most active artists' },
+    { key: 'leastCompat', label: 'Lowest compatibility' },
+    { key: 'whoslooking', label: 'Who\'s Looking first' },
+    { key: 'industry', label: 'Industry matches first' },
   ]
   const [sortOpen, setSortOpen] = useState(false)
   const [sortKey, setSortKey] = useState<string | null>(null)
@@ -1087,55 +1663,60 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted }: Re
     ? 'bg-white/[0.04] border border-white/[0.10] text-white/80 hover:bg-white/[0.08]'
     : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy hover:bg-[rgba(129,55,246,0.04)]'
 
-  const matches: MatchData[] = [
-    {
-      id: 'jamie',
-      name: 'Jamie Cole',
-      genre: 'Indie Pop',
-      location: 'London, UK',
-      match: 94,
-      avatar: icons.resAvatar1,
-      topMatch: true,
-      insight: "Strong lyrical and sonic alignment - melancholic tone and cinematic production style closely mirrors Jamie's recent catalogue.",
-      tags: ['Indie pop', 'Melancholic', 'Cinematic'],
-      listeners: '2.4M',
-      albums: 4,
-      ringColor: 'cyan',
-    },
-    {
-      id: 'liam',
-      name: 'Liam A',
-      genre: 'Ambient',
-      location: 'Berlin, DE',
-      match: 92,
-      avatar: icons.resAvatar2,
-      insight: 'Ethereal textures and abstract sounds create immersive auditory experiences that captivate the mind.',
-      tags: ['Experimental', 'Soundscape', 'Ambient'],
-      listeners: '1.6M',
-      albums: 2,
-      ringColor: 'purple',
-    },
-    {
-      id: 'tina',
-      name: 'Tina V',
-      genre: 'Dance',
-      location: 'New York, NY',
-      match: 90,
-      avatar: icons.resAvatar3,
-      insight: 'Upbeat grooves and vibrant instrumentals create an infectious energy perfect for parties.',
-      tags: ['Rhythmic', 'Dancefloor', 'Funky'],
-      listeners: '3.2M',
-      albums: 5,
-      ringColor: 'purple',
-    },
-  ]
+  // Build match cards from real API data
+  const allMatches: MatchData[] = matchResult
+    ? buildMatchData(matchResult.matches ?? [], icons, matchResult.detected_genre, matchResult.genre_tags ?? [])
+    : []
+
+  // Apply filter
+  const filteredMatches = allMatches.filter((m) => {
+    switch (activeFilter) {
+      case '90plus':
+        return m.match >= 90
+      case 'whoslooking':
+        return /who.?s looking/i.test(m.source)
+      case 'industry':
+        return /industry/i.test(m.source)
+      case 'all':
+      default:
+        return true
+    }
+  })
+
+  // Apply sort
+  const sortedMatches = [...filteredMatches].sort((a, b) => {
+    switch (sortKey) {
+      case 'leastCompat':
+        return a.match - b.match
+      case 'whoslooking':
+        return (/who.?s looking/i.test(b.source) ? 1 : 0) - (/who.?s looking/i.test(a.source) ? 1 : 0)
+      case 'industry':
+        return (/industry/i.test(b.source) ? 1 : 0) - (/industry/i.test(a.source) ? 1 : 0)
+      case 'compat':
+      default:
+        return b.match - a.match
+    }
+  })
+
+  const matches = sortedMatches
+  const totalMatches = allMatches.length
+  const summary = matchResult?.match_summary
+  const strongOnly = allMatches.filter((m) => m.match >= 90).length
+
+  // Derive track meta line
+  const fileExt = (uploadedFile?.name || matchResult?.track_info?.filename || '').split('.').pop()?.toUpperCase() || ''
+  const bpm = matchResult?.track_info?.bpm
+  const trackFilename = matchResult?.track_info?.filename || uploadedFile?.name || 'Track'
+  const detectedGenre = matchResult?.detected_genre
+  const lyricsExtracted = matchResult?.lyrics_extracted ?? false
+  const genreTags = matchResult?.genre_tags?.slice(0, 3) ?? []
+  const language = matchResult?.detected_language
 
   const filters = [
-    { key: 'all' as const, label: 'All (12)' },
-    { key: '90plus' as const, label: '90% + matched' },
-    { key: 'indie' as const, label: 'Indie' },
-    { key: 'electronic' as const, label: 'Electronic' },
-    { key: 'rnb' as const, label: 'R&B' },
+    { key: 'all' as const, label: `All (${totalMatches})` },
+    { key: '90plus' as const, label: `90%+ matched${strongOnly > 0 ? ` (${strongOnly})` : ''}` },
+    { key: 'whoslooking' as const, label: 'Who\'s Looking' },
+    { key: 'industry' as const, label: 'Industry' },
   ]
 
   return (
@@ -1148,8 +1729,9 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted }: Re
           Desktop (xl+): single flex-row with original order (the inner
           `xl:contents` wrappers disappear from layout). */}
       <div style={summaryStyle} className="p-4 md:p-5 xl:p-[18px] flex flex-col xl:flex-row xl:items-center gap-5 xl:gap-6">
-        {/* Group A: icon + track info */}
-        <div className="flex items-center gap-4 xl:contents">
+        {/* Group A: icon + track info — stays grouped on desktop too so a long
+            filename has guaranteed room (flex-1 ensures it shares the row). */}
+        <div className="flex items-center gap-4 xl:flex-1 xl:min-w-[260px]">
           {/* Music icon */}
           <div className="size-[56px] md:size-[68px] xl:size-[80px] rounded-[12px] bg-gradient-to-r from-pp-purple to-pp-purple-deep flex items-center justify-center shrink-0">
             <img src={icons.resMusicNote} alt="" className="size-[28px] md:size-[36px] xl:size-[44px] object-contain" />
@@ -1157,43 +1739,56 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted }: Re
 
           {/* Track info — Manrope font */}
           <div className="flex-1 min-w-0">
-            <p className={`text-[18px] md:text-[20px] font-semibold font-manrope leading-tight truncate ${textPrimary}`}>
-              {uploadedFile?.name ?? 'Fray b1.mp3'}
+            <p className={`text-[18px] md:text-[20px] font-semibold font-manrope leading-tight truncate ${textPrimary}`} title={trackFilename}>
+              {trackFilename}
             </p>
             <p className={`mt-1 text-[12px] font-normal font-poppins ${textMuted}`}>
-              3:42 <span className="mx-1">•</span> MP3 <span className="mx-1">•</span> Analysed today <span className="mx-1">•</span> Lyrics extracted
+              {fileExt && <span>{fileExt}<span className="mx-1">•</span></span>}
+              Analysed just now
+              {lyricsExtracted && (<><span className="mx-1">•</span>Lyrics extracted</>)}
+              {language && language !== 'en' && (<><span className="mx-1">•</span>{language.toUpperCase()}</>)}
             </p>
           </div>
         </div>
 
         {/* Group B: tags + divider + Key/BPM */}
         <div className="flex flex-wrap items-center gap-2 md:gap-3 xl:contents">
-          {/* Tag chips */}
-          <div className="flex flex-wrap items-center gap-2 xl:gap-3">
-            {['Indie pop', 'Melancholic', 'Cinematic'].map((t) => (
-              <span key={t} className={`${pillBaseCls} px-3 py-[6px] rounded-full text-[11px] font-normal tracking-[0.13px] font-poppins whitespace-nowrap`}>
-                {t}
-              </span>
-            ))}
-          </div>
+          {/* Tag chips — top-level genre tags from the AI analysis */}
+          {genreTags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 xl:gap-3">
+              {genreTags.map((t) => (
+                <span key={t} className={`${pillBaseCls} px-3 py-[6px] rounded-full text-[11px] font-normal tracking-[0.13px] font-poppins whitespace-nowrap`}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
 
-          {/* Divider — visible on tablet between tags and Key/BPM, and on desktop in the row */}
-          <div className={`hidden md:block w-px h-6 xl:h-10 ${isDark ? 'bg-white/10' : 'bg-pp-purple/15'}`} />
+          {/* Divider — only when both tags and detected genre/BPM are visible */}
+          {genreTags.length > 0 && (detectedGenre || bpm) && (
+            <div className={`hidden md:block w-px h-6 xl:h-10 ${isDark ? 'bg-white/10' : 'bg-pp-purple/15'}`} />
+          )}
 
-          {/* Key + BPM */}
-          <div className="flex items-center gap-2 xl:gap-3">
-            <span className={`${cyanPillCls} px-3 py-[6px] rounded-full text-[11px] font-medium tracking-[0.13px] font-poppins whitespace-nowrap`}>
-              Key: D Minor
-            </span>
-            <span className={`${cyanPillCls} px-3 py-[6px] rounded-full text-[11px] font-medium tracking-[0.13px] font-poppins whitespace-nowrap`}>
-              94 BPM
-            </span>
-          </div>
+          {/* Genre + BPM */}
+          {(detectedGenre || bpm) && (
+            <div className="flex items-center gap-2 xl:gap-3">
+              {detectedGenre && (
+                <span className={`${cyanPillCls} px-3 py-[6px] rounded-full text-[11px] font-medium tracking-[0.13px] font-poppins whitespace-nowrap`}>
+                  {detectedGenre}
+                </span>
+              )}
+              {bpm !== undefined && bpm > 0 && (
+                <span className={`${cyanPillCls} px-3 py-[6px] rounded-full text-[11px] font-medium tracking-[0.13px] font-poppins whitespace-nowrap`}>
+                  {bpm} BPM
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Matches found box — full-width on tablet, fixed-width on desktop */}
         <div className={`${matchesBoxCls} rounded-[14px] px-6 py-3 flex flex-col items-center justify-center w-full xl:w-auto xl:min-w-[110px] shrink-0`}>
-          <span className={`text-[28px] xl:text-[32px] font-semibold font-poppins leading-none ${isDark ? 'text-white' : 'text-pp-navy'}`}>12</span>
+          <span className={`text-[28px] xl:text-[32px] font-semibold font-poppins leading-none ${isDark ? 'text-white' : 'text-pp-navy'}`}>{totalMatches}</span>
           <span className={`mt-1 text-[12px] font-normal tracking-[1px] uppercase font-poppins ${isDark ? 'text-white/60' : 'text-pp-purple-deep/70'}`}>
             Matches Found
           </span>
@@ -1204,9 +1799,20 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted }: Re
           Mobile: sort dropdown on top (full-width), filter pills below.
           Tablet+: filter pills inline, sort dropdown at the end. */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-        <h2 className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>
-          Matched results (12)
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>
+            Matched results ({matches.length}{matches.length !== totalMatches ? ` of ${totalMatches}` : ''})
+          </h2>
+          <button
+            onClick={onUploadAnother}
+            className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[12px] h-[36px] px-4 rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] transition-all duration-200 ease-out whitespace-nowrap`}
+            aria-label="Upload another track"
+          >
+            <img src={icons.uploadSmall} alt="" className="size-[14px] object-contain" />
+            <span className="hidden md:inline">Upload another track</span>
+            <span className="md:hidden">New track</span>
+          </button>
+        </div>
         <div className="flex flex-col-reverse md:flex-row md:flex-wrap md:items-center gap-3">
           {/* Filter pills group */}
           <div className="flex flex-wrap items-center gap-3">
@@ -1284,6 +1890,38 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted }: Re
         </div>
       </div>
 
+      {/* Empty state — no matches at all, or filter narrowed everything out */}
+      {matches.length === 0 && (
+        <div
+          className={`${cardBg} rounded-[16px] xl:rounded-[18px] p-8 xl:p-10 flex flex-col items-center text-center gap-4`}
+        >
+          <div className="size-[64px] rounded-[16px] flex items-center justify-center" style={{
+            background: isDark ? 'rgba(129,55,246,0.10)' : 'rgba(129,55,246,0.08)',
+            border: `1px solid ${isDark ? 'rgba(129,55,246,0.30)' : 'rgba(129,55,246,0.20)'}`,
+          }}>
+            <img src={icons.target} alt="" className="size-7 object-contain" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>
+              {totalMatches === 0 ? 'No strong matches yet' : 'No matches for this filter'}
+            </p>
+            <p className={`text-[13px] xl:text-[14px] font-light leading-[1.6] font-poppins max-w-[440px] ${textMuted}`}>
+              {totalMatches === 0
+                ? "Our AI couldn't find artists confidently aligned with this track right now. Try a different track or check back as our database grows."
+                : 'Try clearing the filter to see all matches.'}
+            </p>
+          </div>
+          {totalMatches > 0 && (
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[13px] h-[40px] px-5 rounded-[10px] hover:-translate-y-[1px] transition-all duration-200 ease-out`}
+            >
+              Show all matches
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Match cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-5">
         {matches.map((m, idx) => (
@@ -1358,10 +1996,48 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted }: Re
             {/* Actions — pushed to the bottom of the card via mt-auto so every
                 card lines up at the same baseline regardless of insight length. */}
             <div className="flex items-center gap-2 mt-auto pt-1">
-              <button className="gradient-btn border border-white/[0.06] flex-1 text-white font-medium font-poppins text-[13px] h-[40px] rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] active:translate-y-0 transition-all duration-200 ease-out">
-                <img src={icons.resSend} alt="" className="size-4 object-contain" />
-                <span>Pitch to {m.name.split(' ')[0]}</span>
-              </button>
+              {(() => {
+                const trackId = matchResult?.track_id
+                const pitchKey = trackId !== undefined
+                  ? `${trackId}:${m.name.toLowerCase()}`
+                  : null
+                const alreadyPitched = pitchKey !== null && pitchedKeys.has(pitchKey)
+                const isPitching = pitchingArtist === m.id
+                const disabled = alreadyPitched || isPitching || trackId === undefined
+                const label = alreadyPitched
+                  ? 'Pitched'
+                  : isPitching
+                    ? 'Sending…'
+                    : `Pitch to ${m.name.split(' ')[0]}`
+                const baseCls = alreadyPitched
+                  ? `${isDark ? 'bg-white/[0.06] border border-[#00BB7B]/40 text-[#00BB7B]' : 'bg-[rgba(0,187,123,0.08)] border border-[#00BB7B] text-[#00BB7B]'} font-medium font-poppins text-[13px] h-[40px] rounded-[10px] flex-1 flex items-center justify-center gap-2`
+                  : 'gradient-btn border border-white/[0.06] flex-1 text-white font-medium font-poppins text-[13px] h-[40px] rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] active:translate-y-0 transition-all duration-200 ease-out disabled:opacity-60 disabled:pointer-events-none'
+                return (
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={async () => {
+                      if (disabled || trackId === undefined) return
+                      setPitchingArtist(m.id)
+                      try {
+                        await onPitch(m.raw, trackId)
+                      } finally {
+                        setPitchingArtist(null)
+                      }
+                    }}
+                    className={baseCls}
+                  >
+                    {alreadyPitched ? (
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 10.5L8.5 14L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <img src={icons.resSend} alt="" className="size-4 object-contain" />
+                    )}
+                    <span>{label}</span>
+                  </button>
+                )
+              })()}
               <button className={`${viewProfileBtnCls} text-[13px] font-medium font-poppins h-[40px] px-4 rounded-[10px] hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200 ease-out flex items-center justify-center`}>
                 View profile
               </button>
@@ -1419,6 +2095,49 @@ function EqualizerBars({ active }: { active: boolean }) {
           }}
         />
       ))}
+    </div>
+  )
+}
+
+function ProfileDropdown({ isDark, onLogout }: { isDark: boolean; onLogout: () => void }) {
+  const shellCls = isDark
+    ? 'bg-[#160B33] border border-white/[0.08] shadow-[0_18px_50px_rgba(0,0,0,0.5)]'
+    : 'bg-white border border-[rgba(129,55,246,0.15)] shadow-[0_18px_50px_rgba(60,30,140,0.18)]'
+  const itemHover = isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-[rgba(129,55,246,0.06)]'
+  const dangerColor = isDark ? '#FF8A8A' : '#C73030'
+
+  return (
+    <div
+      data-pp-popover
+      role="menu"
+      className={`absolute top-full right-0 mt-2 w-[220px] rounded-[14px] overflow-hidden z-50 card-swap-in py-[6px] ${shellCls}`}
+    >
+      <button
+        role="menuitem"
+        onClick={onLogout}
+        className={`w-full flex items-center gap-3 px-4 py-[10px] text-left transition-colors ${itemHover}`}
+      >
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="shrink-0">
+          <path
+            d="M12.5 14.1667L16.6667 10L12.5 5.83333"
+            stroke={dangerColor}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M16.6667 10H7.5" stroke={dangerColor} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M9.16667 17.5H5C4.55797 17.5 4.13405 17.3244 3.82149 17.0118C3.50893 16.6993 3.33333 16.2754 3.33333 15.8333V4.16667C3.33333 3.72464 3.50893 3.30072 3.82149 2.98816C4.13405 2.67559 4.55797 2.5 5 2.5H9.16667"
+            stroke={dangerColor}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className="text-[14px] font-medium font-poppins" style={{ color: dangerColor }}>
+          Logout
+        </span>
+      </button>
     </div>
   )
 }
@@ -1594,5 +2313,360 @@ function NotificationsPopover({
         )
       })}
     </PopoverShell>
+  )
+}
+
+/* ============================================================
+   MY TRACKS TAB
+   ============================================================ */
+
+interface MyTracksTabProps {
+  isDark: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icons: any
+  textPrimary: string
+  textMuted: string
+  tracks: TrackSummary[]
+  loading: boolean
+  error: string | null
+  onOpen: (id: number) => void
+  onDelete: (id: number) => void
+  onUploadNew: () => void
+}
+
+function formatRelativeDate(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const diffMs = Date.now() - date.getTime()
+  const day = 24 * 60 * 60 * 1000
+  if (diffMs < day) return 'Today'
+  if (diffMs < 2 * day) return 'Yesterday'
+  if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} days ago`
+  return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function MyTracksTab({ isDark, icons, textPrimary, textMuted, tracks, loading, error, onOpen, onDelete, onUploadNew }: MyTracksTabProps) {
+  const meta = TAB_META['my-tracks']
+  const cardBg = isDark
+    ? 'bg-white/[0.03] border border-white/[0.06]'
+    : 'bg-white border border-[rgba(129,55,246,0.12)]'
+  const pillBaseCls = isDark
+    ? 'bg-white/[0.04] border border-white/[0.08] text-white/70'
+    : 'bg-white border border-[rgba(129,55,246,0.15)] text-pp-navy/70'
+  const cyanPillCls = isDark
+    ? 'bg-[rgba(0,184,215,0.10)] border border-[rgba(0,184,215,0.40)] text-pp-blue'
+    : 'bg-[rgba(0,184,215,0.08)] border border-[rgba(0,184,215,0.40)] text-pp-blue'
+
+  return (
+    <div className="w-full xl:w-[1100px] max-w-[1100px] mx-auto flex flex-col gap-[40px] md:gap-[48px] xl:gap-[56px] self-start pt-2 md:pt-4 xl:pt-12">
+      {/* Centered hero heading — matches the My Matches layout */}
+      <div className="flex flex-col items-center text-center gap-[14px] md:gap-[16px]">
+        <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">
+          {meta.eyebrow}
+        </p>
+        <h1 className={`text-[32px] md:text-[32px] xl:text-[42px] font-semibold leading-[1.2] xl:leading-[1.25] font-poppins ${textPrimary}`}>
+          {meta.title} <span className="gradient-text">{meta.gradient}</span>
+        </h1>
+        <p className={`text-[14px] md:text-[14px] xl:text-[16px] font-normal leading-[1.6] tracking-[0.16px] font-poppins max-w-[700px] ${textMuted}`}>
+          {meta.subtitle}
+        </p>
+      </div>
+
+      {/* Section action — sits above the list, right-aligned */}
+      {tracks.length > 0 && !loading && (
+        <div className="flex items-center justify-between gap-3 -mb-2">
+          <h2 className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>
+            {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+          </h2>
+          <button
+            onClick={onUploadNew}
+            className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[13px] md:text-[14px] h-[44px] px-4 md:px-5 rounded-[10px] flex items-center gap-2"
+          >
+            <img src={icons.uploadSmall} alt="" className="size-[16px] object-contain" />
+            <span>Upload new</span>
+          </button>
+        </div>
+      )}
+
+      {/* States */}
+      {loading && (
+        <div className={`${cardBg} rounded-[16px] p-10 text-center`}>
+          <p className={`text-[14px] font-poppins ${textMuted}`}>Loading your tracks…</p>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div
+          role="alert"
+          className="flex items-start gap-[10px] px-[14px] py-[12px] rounded-[12px] font-poppins"
+          style={{
+            background: isDark ? 'rgba(255,107,107,0.07)' : 'rgba(220,38,38,0.05)',
+            border: `1px solid ${isDark ? 'rgba(255,107,107,0.28)' : 'rgba(220,38,38,0.22)'}`,
+          }}
+        >
+          <p className="text-[13px] font-light leading-[1.5]" style={{ color: isDark ? '#FFB8B8' : '#B42323' }}>{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && tracks.length === 0 && (
+        <div className={`${cardBg} rounded-[16px] xl:rounded-[18px] p-8 xl:p-10 flex flex-col items-center text-center gap-4`}>
+          <div className="size-[64px] rounded-[16px] flex items-center justify-center" style={{
+            background: isDark ? 'rgba(129,55,246,0.10)' : 'rgba(129,55,246,0.08)',
+            border: `1px solid ${isDark ? 'rgba(129,55,246,0.30)' : 'rgba(129,55,246,0.20)'}`,
+          }}>
+            <img src={icons.music} alt="" className="size-7 object-contain" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>No tracks yet</p>
+            <p className={`text-[13px] xl:text-[14px] font-light leading-[1.6] font-poppins max-w-[440px] ${textMuted}`}>
+              Upload a song from the My Matches tab and it'll appear here so you can revisit the matches later.
+            </p>
+          </div>
+          <button
+            onClick={onUploadNew}
+            className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[13px] h-[40px] px-5 rounded-[10px]"
+          >
+            Upload your first track
+          </button>
+        </div>
+      )}
+
+      {/* List */}
+      {!loading && tracks.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {tracks.map((t) => (
+            <div
+              key={t.id}
+              className={`${cardBg} rounded-[16px] p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4`}
+            >
+              {/* Icon + filename + meta */}
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="size-[48px] rounded-[12px] bg-gradient-to-r from-pp-purple to-pp-purple-deep flex items-center justify-center shrink-0">
+                  <img src={icons.musicNote} alt="" className="size-[24px] object-contain" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[15px] font-semibold font-manrope leading-tight truncate ${textPrimary}`}>{t.filename}</p>
+                  <p className={`mt-1 text-[12px] font-normal font-poppins ${textMuted}`}>
+                    {formatRelativeDate(t.created_at)}
+                    {t.detected_genre && (<><span className="mx-1">•</span>{t.detected_genre}</>)}
+                    {t.bpm ? (<><span className="mx-1">•</span>{t.bpm} BPM</>) : null}
+                    {t.lyrics_extracted && (<><span className="mx-1">•</span>Lyrics</>)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Counts */}
+              <div className="flex items-center gap-2 md:gap-3">
+                <span className={`${cyanPillCls} px-3 py-[6px] rounded-full text-[11px] font-medium font-poppins whitespace-nowrap`}>
+                  {t.matches_count} {t.matches_count === 1 ? 'match' : 'matches'}
+                </span>
+                <span className={`${pillBaseCls} px-3 py-[6px] rounded-full text-[11px] font-normal font-poppins whitespace-nowrap`}>
+                  {t.pitches_count} pitched
+                </span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => onOpen(t.id)}
+                  className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[13px] h-[40px] px-4 rounded-[10px] whitespace-nowrap"
+                >
+                  View matches
+                </button>
+                <button
+                  onClick={() => onDelete(t.id)}
+                  className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/70 hover:bg-white/[0.08]' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy/70 hover:bg-[rgba(129,55,246,0.04)]'} font-medium font-poppins text-[13px] h-[40px] px-3 rounded-[10px]`}
+                  aria-label="Delete track"
+                  title="Delete track"
+                >
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                    <path d="M3.33 5h13.34M8.33 9.17v5M11.67 9.17v5M4.17 5l.83 10c0 .92.75 1.67 1.67 1.67h6.67c.92 0 1.67-.75 1.67-1.67L15.83 5M7.5 5V3.33c0-.46.37-.83.83-.83h3.34c.46 0 .83.37.83.83V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
+   PITCHES SENT TAB
+   ============================================================ */
+
+interface PitchesSentTabProps {
+  isDark: boolean
+  textPrimary: string
+  textMuted: string
+  pitches: Pitch[]
+  loading: boolean
+  error: string | null
+  onDelete: (id: number) => void
+  onUploadNew: () => void
+}
+
+function PitchesSentTab({ isDark, textPrimary, textMuted, pitches, loading, error, onDelete, onUploadNew }: PitchesSentTabProps) {
+  const meta = TAB_META['pitches-sent']
+  const cardBg = isDark
+    ? 'bg-white/[0.03] border border-white/[0.06]'
+    : 'bg-white border border-[rgba(129,55,246,0.12)]'
+
+  const confidenceStyle = (level: string | null) => {
+    if (!level) return { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.10)', color: isDark ? 'rgba(255,255,255,0.7)' : '#26114A' }
+    const lower = level.toLowerCase()
+    if (lower.includes('strong')) return { bg: 'rgba(0,187,123,0.10)', border: '#00BB7B', color: '#00BB7B' }
+    if (lower.includes('good')) return { bg: 'rgba(0,184,215,0.10)', border: '#00B8D7', color: '#00B8D7' }
+    return { bg: 'rgba(129,55,246,0.10)', border: '#8137F6', color: '#8137F6' }
+  }
+
+  return (
+    <div className="w-full xl:w-[1100px] max-w-[1100px] mx-auto flex flex-col gap-[40px] md:gap-[48px] xl:gap-[56px] self-start pt-2 md:pt-4 xl:pt-12">
+      {/* Centered hero heading — matches the My Matches layout */}
+      <div className="flex flex-col items-center text-center gap-[14px] md:gap-[16px]">
+        <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">
+          {meta.eyebrow}
+        </p>
+        <h1 className={`text-[32px] md:text-[32px] xl:text-[42px] font-semibold leading-[1.2] xl:leading-[1.25] font-poppins ${textPrimary}`}>
+          {meta.title} <span className="gradient-text">{meta.gradient}</span>
+        </h1>
+        <p className={`text-[14px] md:text-[14px] xl:text-[16px] font-normal leading-[1.6] tracking-[0.16px] font-poppins max-w-[700px] ${textMuted}`}>
+          {meta.subtitle}
+        </p>
+      </div>
+
+      {/* Section action — sits above the list, right-aligned */}
+      {pitches.length > 0 && !loading && (
+        <div className="flex items-center justify-between gap-3 -mb-2">
+          <h2 className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>
+            {pitches.length} {pitches.length === 1 ? 'pitch' : 'pitches'}
+          </h2>
+          <button
+            onClick={onUploadNew}
+            className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[13px] md:text-[14px] h-[44px] px-4 md:px-5 rounded-[10px] flex items-center gap-2 whitespace-nowrap`}
+          >
+            <span>New match</span>
+          </button>
+        </div>
+      )}
+
+      {/* States */}
+      {loading && (
+        <div className={`${cardBg} rounded-[16px] p-10 text-center`}>
+          <p className={`text-[14px] font-poppins ${textMuted}`}>Loading your pitches…</p>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div
+          role="alert"
+          className="flex items-start gap-[10px] px-[14px] py-[12px] rounded-[12px] font-poppins"
+          style={{
+            background: isDark ? 'rgba(255,107,107,0.07)' : 'rgba(220,38,38,0.05)',
+            border: `1px solid ${isDark ? 'rgba(255,107,107,0.28)' : 'rgba(220,38,38,0.22)'}`,
+          }}
+        >
+          <p className="text-[13px] font-light leading-[1.5]" style={{ color: isDark ? '#FFB8B8' : '#B42323' }}>{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && pitches.length === 0 && (
+        <div className={`${cardBg} rounded-[16px] xl:rounded-[18px] p-8 xl:p-10 flex flex-col items-center text-center gap-4`}>
+          <div className="size-[64px] rounded-[16px] flex items-center justify-center" style={{
+            background: isDark ? 'rgba(129,55,246,0.10)' : 'rgba(129,55,246,0.08)',
+            border: `1px solid ${isDark ? 'rgba(129,55,246,0.30)' : 'rgba(129,55,246,0.20)'}`,
+          }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" stroke={isDark ? 'white' : '#26114A'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>No pitches sent yet</p>
+            <p className={`text-[13px] xl:text-[14px] font-light leading-[1.6] font-poppins max-w-[440px] ${textMuted}`}>
+              When you tap "Pitch to artist" on a match, it'll appear here so you can track who you've reached out to.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {!loading && pitches.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {pitches.map((p) => {
+            const cs = confidenceStyle(p.confidence_level)
+            return (
+              <div
+                key={p.id}
+                className={`${cardBg} rounded-[16px] p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4`}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {p.artist_image ? (
+                    <div className="size-[44px] rounded-full overflow-hidden shrink-0 bg-gradient-to-r from-pp-purple to-pp-purple-deep">
+                      <img
+                        src={p.artist_image}
+                        alt={p.artist_name}
+                        className="size-full object-cover"
+                        onError={(e) => {
+                          // If the image URL is broken, hide it so the gradient
+                          // circle behind shows through as a graceful fallback.
+                          ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="size-[44px] rounded-full bg-gradient-to-r from-pp-purple to-pp-purple-deep flex items-center justify-center shrink-0 text-white font-semibold font-poppins text-[15px]">
+                      {p.artist_name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[15px] font-semibold font-manrope leading-tight truncate ${textPrimary}`}>{p.artist_name}</p>
+                    <p className={`mt-1 text-[12px] font-normal font-poppins ${textMuted}`}>
+                      {p.track_filename ?? 'Unknown track'}
+                      {p.label && (<><span className="mx-1">•</span>{p.label}</>)}
+                      <span className="mx-1">•</span>
+                      {formatRelativeDate(p.created_at)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Confidence */}
+                <div className="flex items-center gap-2 md:gap-3">
+                  {p.confidence_level && (
+                    <span
+                      className="px-3 py-[6px] rounded-full text-[11px] font-medium font-poppins whitespace-nowrap"
+                      style={{ background: cs.bg, border: `1px solid ${cs.border}`, color: cs.color }}
+                    >
+                      {p.confidence_level}
+                    </span>
+                  )}
+                  <span
+                    className={`${isDark ? 'bg-white/[0.04] border border-white/[0.08] text-white/70' : 'bg-white border border-[rgba(129,55,246,0.15)] text-pp-navy/70'} px-3 py-[6px] rounded-full text-[11px] font-normal font-poppins whitespace-nowrap`}
+                  >
+                    {Math.round(p.final_score * 100)}% match
+                  </span>
+                </div>
+
+                {/* Status pill */}
+                <span className="bg-[rgba(0,187,123,0.10)] border border-[#00BB7B] text-[#00BB7B] px-3 py-[6px] rounded-full text-[11px] font-medium font-poppins whitespace-nowrap shrink-0">
+                  {p.status}
+                </span>
+
+                <button
+                  onClick={() => onDelete(p.id)}
+                  className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/70 hover:bg-white/[0.08]' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy/70 hover:bg-[rgba(129,55,246,0.04)]'} font-medium font-poppins text-[13px] h-[40px] px-3 rounded-[10px] shrink-0`}
+                  aria-label="Delete pitch"
+                  title="Delete pitch"
+                >
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                    <path d="M3.33 5h13.34M8.33 9.17v5M11.67 9.17v5M4.17 5l.83 10c0 .92.75 1.67 1.67 1.67h6.67c.92 0 1.67-.75 1.67-1.67L15.83 5M7.5 5V3.33c0-.46.37-.83.83-.83h3.34c.46 0 .83.37.83.83V5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }

@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { darkImages, lightImages, ThemeImages } from '../assets/images'
 import Navbar from '../components/Navbar'
+import InlineAlert from '../components/InlineAlert'
+import { ApiError } from '../services/api'
+import { resetPassword as resetPasswordRequest } from '../services/auth'
 
 interface ResetPasswordPageProps {
   isDark: boolean
@@ -86,11 +89,21 @@ export default function ResetPasswordPage({ isDark, onToggleTheme }: ResetPasswo
     : { ...darkImages, ...lightImages }
 
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token') ?? ''
   const [view, setView] = useState<View>('reset')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  // Clear stale error as soon as the user edits a password input.
+  useEffect(() => {
+    if (error) setError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newPassword, confirmPassword])
 
   // Styles — exactly matching LoginCard
   const inputCls = isDark
@@ -114,6 +127,32 @@ export default function ResetPasswordPage({ isDark, onToggleTheme }: ResetPasswo
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>_\-+=]/.test(newPassword)
 
   const eyeColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(38,17,74,0.6)'
+
+  async function handleReset() {
+    if (submitting) return
+    if (!token) {
+      setError('This reset link is missing or invalid. Please request a new one.')
+      return
+    }
+    if (!isLongEnough || !hasSpecialChar) {
+      setError('Password does not meet the requirements below.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    try {
+      await resetPasswordRequest(token, newPassword)
+      setView('success')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not reset password. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className={`min-h-screen font-poppins flex flex-col ${isDark ? 'hero-bg-dark' : 'hero-bg-light'}`}>
@@ -196,12 +235,17 @@ export default function ResetPasswordPage({ isDark, onToggleTheme }: ResetPasswo
               </div>
 
               {/* Reset button */}
-              <button
-                onClick={() => setView('success')}
-                className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full"
-              >
-                Reset Password
-              </button>
+              <div className="flex flex-col gap-3">
+                {error && <InlineAlert message={error} isDark={isDark} />}
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  disabled={submitting}
+                  className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full disabled:opacity-60 disabled:pointer-events-none"
+                >
+                  {submitting ? 'Resetting…' : 'Reset Password'}
+                </button>
+              </div>
 
               {/* Back to login */}
               <button

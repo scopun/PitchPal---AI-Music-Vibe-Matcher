@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ThemeImages } from '../assets/images'
+import { useAuth } from '../context/AuthContext'
+import { ApiError } from '../services/api'
+import { forgotPassword, login as loginRequest, signup as signupRequest } from '../services/auth'
+import InlineAlert from './InlineAlert'
 
 interface HeroSectionProps {
   isDark: boolean
@@ -47,6 +51,7 @@ function Divider({ isDark, label }: { isDark: boolean; label: string }) {
 function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { signIn } = useAuth()
   const initialView: CardView =
     (location.state as { initialView?: CardView } | null)?.initialView === 'signup' ? 'signup' : 'login'
   const [view, setView] = useState<CardView>(initialView)
@@ -69,6 +74,84 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
   const [password, setPassword] = useState('')
   const [forgotEmail, setForgotEmail] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  // Clear error/loading state whenever the view changes.
+  useEffect(() => {
+    setError(null)
+    setSubmitting(false)
+  }, [view])
+
+  // Clear stale error as soon as the user edits an input.
+  useEffect(() => {
+    if (error) setError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, password, forgotEmail])
+
+  async function handleLogin() {
+    if (submitting) return
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.')
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    try {
+      const result = await loginRequest(email.trim(), password)
+      signIn(result.access_token, result.user)
+      navigate('/upload')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Login failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleSignup() {
+    if (submitting) return
+    if (!email.trim() || !password) {
+      setError('Please enter your email and a password.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (!agreeTerms) {
+      setError('Please agree to the Terms & Conditions to continue.')
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    try {
+      const result = await signupRequest(email.trim(), password)
+      signIn(result.access_token, result.user)
+      navigate('/upload')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Sign up failed. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleForgot() {
+    if (submitting) return
+    if (!forgotEmail.trim()) {
+      setError('Please enter your email address.')
+      return
+    }
+    setError(null)
+    setSubmitting(true)
+    try {
+      await forgotPassword(forgotEmail.trim())
+      setView('linkSent')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not send reset email. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const inputCls = isDark
     ? 'bg-white/[0.06] border border-white/[0.1] text-white placeholder:text-white/40'
@@ -171,12 +254,17 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
           />
 
           {/* Reset button */}
-          <button
-            onClick={() => setView('linkSent')}
-            className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full"
-          >
-            Reset Password
-          </button>
+          <div className="flex flex-col gap-3">
+            {error && view === 'forgot' && <InlineAlert message={error} isDark={isDark} />}
+            <button
+              type="button"
+              onClick={handleForgot}
+              disabled={submitting}
+              className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full disabled:opacity-60 disabled:pointer-events-none"
+            >
+              {submitting ? 'Sending…' : 'Reset Password'}
+            </button>
+          </div>
 
           {/* Back to login */}
           <button
@@ -260,9 +348,17 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
           </div>
 
           {/* Sign up button */}
-          <button className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full">
-            Sign up to PitchPal
-          </button>
+          <div className="flex flex-col gap-3">
+            {error && view === 'signup' && <InlineAlert message={error} isDark={isDark} />}
+            <button
+              type="button"
+              onClick={handleSignup}
+              disabled={submitting}
+              className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full disabled:opacity-60 disabled:pointer-events-none"
+            >
+              {submitting ? 'Signing up…' : 'Sign up to PitchPal'}
+            </button>
+          </div>
 
           {/* Already have account */}
           <div className="flex items-center gap-2">
@@ -347,9 +443,17 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
           </div>
 
           {/* Sign in button */}
-          <button className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full">
-            Sign in to PitchPal
-          </button>
+          <div className="flex flex-col gap-3">
+            {error && view === 'login' && <InlineAlert message={error} isDark={isDark} />}
+            <button
+              type="button"
+              onClick={handleLogin}
+              disabled={submitting}
+              className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px] w-full disabled:opacity-60 disabled:pointer-events-none"
+            >
+              {submitting ? 'Signing in…' : 'Sign in to PitchPal'}
+            </button>
+          </div>
 
           {/* Register */}
           <div className="flex items-center gap-2">
