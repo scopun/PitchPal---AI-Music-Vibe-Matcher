@@ -20,7 +20,11 @@ function GlobalLogoutOverlay({ isDark }: { isDark: boolean }) {
   return loggingOut ? <LogoutOverlay isDark={isDark} /> : null
 }
 
-const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? ''
+// `useGoogleLogin` requires being inside <GoogleOAuthProvider>, so we always
+// mount it. If the client id is missing/empty the provider is still safe to
+// render — the actual OAuth call will just fail at click time and surface a
+// clear error message instead of blanking the whole page.
+const GOOGLE_CLIENT_ID = ((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? '').trim()
 
 export default function App() {
   const [isDark, setIsDark] = useState(true)
