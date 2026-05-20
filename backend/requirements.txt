@@ -17,4 +17,5 @@ sqlalchemy>=2.0
 asyncpg
 bcrypt
 python-jose[cryptography]
-resendgreenlet
+resend
+greenlet
