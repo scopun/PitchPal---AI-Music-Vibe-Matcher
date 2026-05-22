@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../services/api'
 import { forgotPassword, login as loginRequest, loginWithGoogle, signup as signupRequest } from '../services/auth'
 import InlineAlert from './InlineAlert'
+import EyeIcon from './EyeIcon'
 
 const GOOGLE_ENABLED = !!((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? '').trim()
 
@@ -423,7 +424,7 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
                 className="absolute right-[18px] top-1/2 -translate-y-1/2 size-5 cursor-pointer"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <img src={imgs.eyeIcon} alt="" className="w-full h-full object-contain" />
+                <EyeIcon open={showPassword} color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(38,17,74,0.6)'} />
               </button>
             </div>
           </div>
@@ -537,7 +538,7 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
                 className="absolute right-[18px] top-1/2 -translate-y-1/2 size-5 cursor-pointer"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <img src={imgs.eyeIcon} alt="" className="w-full h-full object-contain" />
+                <EyeIcon open={showPassword} color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(38,17,74,0.6)'} />
               </button>
             </div>
           </div>
