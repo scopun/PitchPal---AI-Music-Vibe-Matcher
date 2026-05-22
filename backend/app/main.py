@@ -33,18 +33,19 @@ origins = [
     "https://pitchpal-ai-music-vibe-matcher-e84u.onrender.com",
     "https://pitchpal-ai-music-vibe-matcher.onrender.com",
     "https://pitchpal-frontend.onrender.com",
+    "https://pitchpal-frontend.vercel.app",
 ]
 
 # Also trust whichever FRONTEND_URL the deployment is configured with — saves
-# editing this list every time the Render preview URL changes.
+# editing this list every time the Render/Vercel preview URL changes.
 if settings.FRONTEND_URL and settings.FRONTEND_URL not in origins:
     origins.append(settings.FRONTEND_URL.rstrip("/"))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    # Also allow any *.onrender.com subdomain (Render preview deploys, etc.)
-    allow_origin_regex=r"https://.*\.onrender\.com",
+    # Also allow any *.onrender.com or *.vercel.app subdomain (preview deploys).
+    allow_origin_regex=r"https://.*\.(onrender\.com|vercel\.app)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
