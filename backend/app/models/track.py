@@ -16,6 +16,10 @@ class Track(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
     )
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    # SHA-256 hex digest of the uploaded audio bytes. Used to short-circuit
+    # the matcher when the same user re-uploads an identical file within the
+    # cache window (see CACHE_TTL_DAYS in tracks.py).
+    audio_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     bpm: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     energy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     detected_genre: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

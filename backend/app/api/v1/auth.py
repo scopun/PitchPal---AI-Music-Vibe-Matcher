@@ -16,6 +16,7 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.schemas.auth import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     GoogleLoginRequest,
     LoginRequest,
@@ -24,6 +25,7 @@ from app.schemas.auth import (
     SignupRequest,
     TokenResponse,
     UserResponse,
+    UserUpdateRequest,
     VerifyEmailResponse,
 )
 from app.services.email_service import (
@@ -244,3 +246,39 @@ async def google_login(
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
     return UserResponse.model_validate(current_user)
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    payload: UserUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> UserResponse:
+    """Partial profile update — only fields present in the payload are
+    applied. Empty strings are treated as "clear this field"."""
+    updates = payload.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        # Normalise: empty string → None so the field reads as "unset" both
+        # in the DB and in subsequent /me responses.
+        if isinstance(value, str) and value.strip() == "":
+            value = None
+        setattr(current_user, field, value)
+    await session.commit()
+    await session.refresh(current_user)
+    return UserResponse.model_validate(current_user)
+
+
+@router.post("/me/change-password", response_model=MessageResponse)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> MessageResponse:
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+    current_user.hashed_password = hash_password(payload.new_password)
+    await session.commit()
+    return MessageResponse(message="Password updated.")

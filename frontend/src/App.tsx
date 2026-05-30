@@ -53,8 +53,11 @@ export default function App() {
           <Route path="/dashboard" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/my-tracks" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/pitches-sent" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
-          <Route path="/ai-assistant" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/analytics" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
+          {/* Settings opens inside the dashboard shell as a sidebar tab so
+              the user keeps the sidebar context. The standalone SettingsPage
+              is now unused but kept as a thin wrapper for safety. */}
+          <Route path="/settings" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/messages" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/notifications" element={<UploadPage isDark={isDark} onToggleTheme={onToggleTheme} />} />
           <Route path="/how-it-works" element={<HowItWorksPage isDark={isDark} onToggleTheme={onToggleTheme} />} />

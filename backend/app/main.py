@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.api.v1 import auth, tracks, pitches
+from app.api.v1 import analytics, auth, contact, tracks, pitches
 from app.core.config import settings
 from app.core.database import load_database, artist_db_cache
 from app.core.db import init_models
@@ -53,6 +53,8 @@ app.add_middleware(
 
 app.include_router(tracks.router, prefix="/api/v1", tags=["Tracks"])
 app.include_router(pitches.router, prefix="/api/v1", tags=["Pitches"])
+app.include_router(analytics.router, prefix="/api/v1", tags=["Analytics"])
+app.include_router(contact.router, prefix="/api/v1", tags=["Contact"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 
 @app.get("/")
