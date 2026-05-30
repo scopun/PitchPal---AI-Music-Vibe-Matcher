@@ -531,7 +531,9 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const buildPitchBody = (artist: MatchItem, trackName: string): string => {
     const firstName = (artist.artist || '').split(' ')[0] || 'there'
     const reason = (artist.brief_match || artist.reason || '').trim()
-    const senderName = displayName
+    // We don't auto-insert the user's display_name as the signature — they'll
+    // be sending this from their own email client anyway, which already
+    // appends their signature. We just leave a clean "Best," for them.
     return [
       `Hi ${firstName} team,`,
       '',
@@ -545,7 +547,6 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
       'Would love to hear your thoughts.',
       '',
       `Best,`,
-      senderName,
     ].filter((line, i, arr) => !(line === '' && arr[i - 1] === '')).join('\n')
   }
 
