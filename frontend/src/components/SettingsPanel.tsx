@@ -230,7 +230,7 @@ export default function SettingsPanel({ isDark }: SettingsPanelProps) {
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder={derivedFallbackName}
+              placeholder="Your display name"
               className={`${inputCls} h-[42px] rounded-[10px] px-3 text-[14px] font-poppins outline-none transition-colors`}
             />
           </label>
