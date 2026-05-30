@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core.config import settings
-from app.services.email_service import _send  # type: ignore[attr-defined]
+from app.services.email_service import send_contact_form_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -47,15 +47,13 @@ async def submit_contact_form(payload: ContactFormRequest) -> ContactFormRespons
             message="Thanks — your message has been received. (Email forwarding not yet configured.)",
         )
 
-    safe_name = payload.name.replace("<", "&lt;").replace(">", "&gt;")
-    safe_msg = payload.message.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
-    html = (
-        f"<p><strong>From:</strong> {safe_name} &lt;{payload.email}&gt;</p>"
-        f"<hr><div>{safe_msg}</div>"
-    )
-
     try:
-        _send(destination, subject=f"PitchPal contact form — {payload.name}", html=html)
+        send_contact_form_email(
+            to=destination,
+            name=payload.name,
+            sender_email=payload.email,
+            message=payload.message,
+        )
     except Exception as exc:  # noqa: BLE001
         logger.exception("Failed to forward contact form: %s", exc)
         raise HTTPException(
