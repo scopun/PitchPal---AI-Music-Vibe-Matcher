@@ -5,6 +5,41 @@ export interface UserResponse {
   email: string
   email_verified: boolean
   created_at: string
+  display_name?: string | null
+  bio?: string | null
+  avatar_url?: string | null
+  location?: string | null
+  role?: string | null
+  website_url?: string | null
+  soundcloud_url?: string | null
+  spotify_url?: string | null
+}
+
+export interface UserUpdatePayload {
+  display_name?: string
+  bio?: string
+  avatar_url?: string
+  location?: string
+  role?: string
+  website_url?: string
+  soundcloud_url?: string
+  spotify_url?: string
+}
+
+export function updateMe(payload: UserUpdatePayload): Promise<UserResponse> {
+  return apiRequest<UserResponse>('/api/v1/auth/me', {
+    method: 'PATCH',
+    body: payload,
+    auth: true,
+  })
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/api/v1/auth/me/change-password', {
+    method: 'POST',
+    body: { current_password: currentPassword, new_password: newPassword },
+    auth: true,
+  })
 }
 
 export interface TokenResponse {

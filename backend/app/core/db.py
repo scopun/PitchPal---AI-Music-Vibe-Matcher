@@ -48,3 +48,21 @@ async def init_models() -> None:
         await conn.execute(text(
             "ALTER TABLE pitches ADD COLUMN IF NOT EXISTS artist_image VARCHAR(512)"
         ))
+        await conn.execute(text(
+            "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS audio_hash VARCHAR(64)"
+        ))
+        await conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_tracks_audio_hash ON tracks (audio_hash)"
+        ))
+        # Profile fields on users.
+        for stmt in (
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(120)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS location VARCHAR(120)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(80)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS soundcloud_url VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS spotify_url VARCHAR(255)",
+        ):
+            await conn.execute(text(stmt))

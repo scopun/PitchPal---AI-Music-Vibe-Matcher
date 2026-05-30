@@ -21,6 +21,8 @@ import {
   listPitches as apiListPitches,
   type Pitch,
 } from '../services/pitches'
+import { fetchAnalytics, type AnalyticsResponse } from '../services/analytics'
+import SettingsPanel from '../components/SettingsPanel'
 
 // Dark icons
 import darkLogo from '../assets/icons/dark/upload/Logo.svg'
@@ -109,7 +111,7 @@ type SidebarKey =
   | 'my-tracks'
   | 'my-matches'
   | 'pitches-sent'
-  | 'ai-assistant'
+  | 'settings'
   | 'analytics'
   | 'messages'
   | 'notifications'
@@ -122,7 +124,7 @@ const PATH_BY_KEY: Record<SidebarKey, string> = {
   'my-tracks': '/my-tracks',
   'my-matches': '/upload',
   'pitches-sent': '/pitches-sent',
-  'ai-assistant': '/ai-assistant',
+  'settings': '/settings',
   'analytics': '/analytics',
   'messages': '/messages',
   'notifications': '/notifications',
@@ -157,6 +159,15 @@ const TAB_META: Record<SidebarKey, { eyebrow: string; title: string; gradient: s
       "Duis ac tellus et risus vulputate vehicula. Donec lobortis risus a elit. Pellentesque malesuada nulla a mi.",
     ],
   },
+  'settings': {
+    eyebrow: 'ACCOUNT',
+    title: 'Your',
+    gradient: 'profile & settings',
+    subtitle: 'Manage how you appear inside PitchPal — your photo, name, social links, and password.',
+    topbarTitle: 'Account settings',
+    topbarSubtitle: 'Profile, security and preferences',
+    bodyParagraphs: [],
+  },
   'my-matches': {
     eyebrow: 'MY MATCHES',
     title: 'Find the',
@@ -167,27 +178,15 @@ const TAB_META: Record<SidebarKey, { eyebrow: string; title: string; gradient: s
     bodyParagraphs: [],
   },
   'pitches-sent': {
-    eyebrow: 'PITCHES SENT',
-    title: 'Every pitch',
-    gradient: 'you have made',
+    eyebrow: 'SONGS PITCHED',
+    title: 'Every song',
+    gradient: 'you have pitched',
     subtitle: 'Track the artists you have reached out to and see who is engaging with your music.',
-    topbarTitle: 'Pitches sent',
+    topbarTitle: 'Songs pitched',
     topbarSubtitle: 'Track all your outgoing pitches',
     bodyParagraphs: [
       "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
       "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.",
-    ],
-  },
-  'ai-assistant': {
-    eyebrow: 'AI ASSISTANT',
-    title: 'Your songwriting',
-    gradient: 'co-pilot',
-    subtitle: 'Ask anything about your tracks, your matches, or your strategy — the assistant is always on.',
-    topbarTitle: 'AI assistant',
-    topbarSubtitle: 'Your songwriting co-pilot',
-    bodyParagraphs: [
-      "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.",
-      "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti.",
     ],
   },
   'analytics': {
@@ -259,7 +258,36 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Desktop-only topbar popover: 'messages' | 'notifications' | 'profile' | null
   const [openPopover, setOpenPopover] = useState<'messages' | 'notifications' | 'profile' | null>(null)
-  const { triggerSignOut } = useAuth()
+  const { triggerSignOut, user } = useAuth()
+
+  // Prefer the user's saved display_name. Fall back to a name derived
+  // from the email's local part (splits on dots / underscores / hyphens,
+  // capitalises each word) so the topbar still looks right before the
+  // user has filled in Settings.
+  const derivedName = user?.email
+    ? user.email.split('@')[0]
+        .replace(/[._-]+/g, ' ')
+        .split(' ')
+        .filter(Boolean)
+        .map((w) => w[0].toUpperCase() + w.slice(1))
+        .join(' ')
+    : 'User'
+  const displayName = (user?.display_name && user.display_name.trim()) || derivedName
+  const displayEmail = user?.email ?? '—'
+  const userAvatarUrl = user?.avatar_url || null
+
+  // Small helper — used in the 3 topbar/drawer avatar slots. When the user
+  // has uploaded a photo we show it; otherwise we render the same gradient
+  // initial circle that the Dashboard hero uses, so the avatar style stays
+  // consistent across the whole shell instead of falling back to a generic
+  // person SVG.
+  const renderTopbarAvatar = () => userAvatarUrl
+    ? <img src={userAvatarUrl} alt={displayName} className="size-full object-cover" />
+    : (
+      <div className="size-full bg-gradient-to-br from-pp-purple to-pp-purple-deep flex items-center justify-center text-white font-semibold text-[16px] font-poppins">
+        {displayName.slice(0, 1).toUpperCase()}
+      </div>
+    )
 
   const handleLogout = () => {
     setOpenPopover(null)
@@ -330,6 +358,46 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     if (activeItem === 'pitches-sent') void refreshPitches()
   }, [activeItem])
 
+  // Analytics tab — fetch fresh stats every time the user lands on it so the
+  // numbers reflect any tracks/pitches added since the last visit.
+  // Top search bar — types filters the user's My Tracks list and the
+  // matching results show up in a dropdown. Clicking a result opens that
+  // track's saved match view (same as clicking it in the My Tracks tab).
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchResults = (() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return [] as TrackSummary[]
+    return myTracks
+      .filter((t) => {
+        const haystack = [t.filename, t.detected_genre, t.detected_language]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(q)
+      })
+      .slice(0, 8)
+  })()
+
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null)
+  useEffect(() => {
+    // Dashboard reuses the same analytics payload so we don't double-load.
+    if (activeItem !== 'analytics' && activeItem !== 'dashboard') return
+    let cancelled = false
+    setAnalyticsLoading(true)
+    setAnalyticsError(null)
+    fetchAnalytics()
+      .then((data) => { if (!cancelled) setAnalytics(data) })
+      .catch((err) => {
+        if (cancelled) return
+        setAnalyticsError(err instanceof ApiError ? err.message : 'Could not load analytics.')
+      })
+      .finally(() => { if (!cancelled) setAnalyticsLoading(false) })
+    return () => { cancelled = true }
+  }, [activeItem])
+
   // Hydrate tracks + pitches once on mount so the sidebar badges and the
   // Pitch buttons in the results view reflect reality from the moment the
   // dashboard loads — even if the user hasn't opened those tabs yet.
@@ -344,7 +412,16 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
       const detail = await apiGetTrack(trackId)
       if (detail.match_data) {
         // Inject track_id so Pitch buttons can save against this track.
-        const result: MatchResponse = { ...detail.match_data, track_id: detail.id }
+        // Also surface this as a "cached/saved" view so the user knows
+        // they're looking at the previously-saved AI analysis (not a
+        // fresh run) — same indicator the cache hit path uses, sourced
+        // from the track's original created_at timestamp.
+        const result: MatchResponse = {
+          ...detail.match_data,
+          track_id: detail.id,
+          cached: true,
+          cached_at: detail.created_at,
+        }
         setUploadedFile(null)
         setMatchResult(result)
         setMatchError(null)
@@ -425,7 +502,71 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     goToTab('my-matches')
   }
 
-  const sendPitch = async (artist: MatchItem, trackId: number): Promise<boolean> => {
+  // Used by the secondary "Upload new" / "Upload another track" / "New match"
+  // buttons across My Tracks, Songs Pitched, and the Results view. Resets
+  // state, switches to My Matches, AND opens the file picker — matching the
+  // behaviour of the primary sidebar / topbar / dashboard upload buttons so
+  // every "upload" entry point feels the same to the user.
+  const goToUploadAndPick = () => {
+    goToMatchesForUpload()
+    triggerFilePicker()
+  }
+
+  // Pitch flow — Ciara's request: clicking "Pitch" opens a modal with an
+  // auto-generated email + a streaming link the user can paste into their
+  // own email client. Confirming the modal commits the pitch to the backend
+  // so it shows up in "Songs Pitched".
+  type PitchDraft = {
+    artist: MatchItem
+    trackId: number
+    displayArtistName: string
+    trackName: string
+    body: string
+    streamingLink: string
+  }
+  const [pitchDraft, setPitchDraft] = useState<PitchDraft | null>(null)
+  const [pitchSending, setPitchSending] = useState(false)
+  const [pitchCopied, setPitchCopied] = useState(false)
+
+  const buildPitchBody = (artist: MatchItem, trackName: string): string => {
+    const firstName = (artist.artist || '').split(' ')[0] || 'there'
+    const reason = (artist.brief_match || artist.reason || '').trim()
+    const senderName = displayName
+    return [
+      `Hi ${firstName} team,`,
+      '',
+      `I'm reaching out via PitchPal — your AI matching surfaced ${artist.artist} as a strong creative fit for my new track "${trackName}".`,
+      '',
+      reason ? `Why I think this works for ${firstName}:` : '',
+      reason,
+      '',
+      'Have a listen here: [PASTE YOUR STREAMING LINK]',
+      '',
+      'Would love to hear your thoughts.',
+      '',
+      `Best,`,
+      senderName,
+    ].filter((line, i, arr) => !(line === '' && arr[i - 1] === '')).join('\n')
+  }
+
+  const openPitchModal = async (artist: MatchItem, trackId: number): Promise<boolean> => {
+    const trackName = matchResult?.track_info?.filename?.replace(/\.[^.]+$/, '') || uploadedFile?.name || 'Track'
+    setPitchCopied(false)
+    setPitchDraft({
+      artist,
+      trackId,
+      displayArtistName: artist.artist || 'this artist',
+      trackName,
+      body: buildPitchBody(artist, trackName),
+      streamingLink: '',
+    })
+    return true // signals the caller (Pitch button) to clear its "sending" spinner — actual save happens on modal confirm
+  }
+
+  const confirmPitchSend = async () => {
+    if (!pitchDraft) return
+    const { artist, trackId } = pitchDraft
+    setPitchSending(true)
     try {
       const created = await apiCreatePitch({
         track_id: trackId,
@@ -437,16 +578,14 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
         final_score: artist.final_score,
         confidence_level: artist.confidence_level ?? null,
       })
-      // Keep sidebar badge + Pitches Sent list in sync without a full refetch.
       setPitches((prev) => [created, ...prev])
       setPitchedArtistKeys((prev) => {
         const next = new Set(prev)
         next.add(`${trackId}:${artist.artist.toLowerCase()}`)
         return next
       })
-      return true
+      setPitchDraft(null)
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Could not save this pitch.'
       // Treat duplicates as success — the artist was already pitched.
       if (err instanceof ApiError && err.status === 409) {
         setPitchedArtistKeys((prev) => {
@@ -454,10 +593,33 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           next.add(`${trackId}:${artist.artist.toLowerCase()}`)
           return next
         })
-        return true
+        setPitchDraft(null)
+      } else {
+        const message = err instanceof ApiError ? err.message : 'Could not save this pitch.'
+        window.alert(message)
       }
-      window.alert(message)
-      return false
+    } finally {
+      setPitchSending(false)
+    }
+  }
+
+  // Keep the old name so the ResultsView prop wiring stays simple.
+  const sendPitch = openPitchModal
+
+  const copyPitchToClipboard = async () => {
+    if (!pitchDraft) return
+    // Splice the user's streaming link into the body before copying so they
+    // can paste straight into Gmail/Outlook without extra editing.
+    const filled = pitchDraft.streamingLink.trim()
+      ? pitchDraft.body.replace('[PASTE YOUR STREAMING LINK]', pitchDraft.streamingLink.trim())
+      : pitchDraft.body
+    try {
+      await navigator.clipboard.writeText(filled)
+      setPitchCopied(true)
+      window.setTimeout(() => setPitchCopied(false), 1800)
+    } catch {
+      // Fallback for older browsers / non-secure contexts.
+      window.prompt('Copy the pitch text below:', filled)
     }
   }
 
@@ -485,6 +647,25 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const [analysingStep, setAnalysingStep] = useState(0)
   const [view, setView] = useState<'drop' | 'analysing' | 'results' | 'error'>('drop')
   const [matchResult, setMatchResult] = useState<MatchResponse | null>(null)
+
+  // Cache indicator — true both for re-uploads that hit the 7-day audio-hash
+  // cache and for tracks opened from My Tracks (we mark those cached too so
+  // the user knows they're looking at a saved analysis, not a fresh run).
+  // Computed at the UploadPage level so the fixed toast (rendered outside
+  // the inner ResultsView) can read it.
+  const isCached = matchResult?.cached === true
+  const cachedRelativeLabel = (() => {
+    if (!isCached || !matchResult?.cached_at) return null
+    const then = new Date(matchResult.cached_at).getTime()
+    if (!Number.isFinite(then)) return null
+    const diffMs = Date.now() - then
+    const minutes = Math.floor(diffMs / 60_000)
+    if (minutes < 60) return `${Math.max(1, minutes)}m ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return `${days}d ago`
+  })()
   const [matchError, setMatchError] = useState<string | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -570,7 +751,33 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
       if (controller.signal.aborted) return
       setMatchResult(result)
       setAnalysingStep(4)
-      // Refresh sidebar tracks badge to reflect the newly-saved track.
+      // Optimistically insert the new/cached track into the My Tracks list
+      // so the "track still exists?" guard further down doesn't race with
+      // the upcoming setView('results') and bounce the user back to drop.
+      // This was the root cause of the bug where the second upload of the
+      // same file would show the drop view instead of the matches.
+      if (result.track_id !== undefined) {
+        const newTrackId = result.track_id
+        setMyTracks((prev) => {
+          if (prev.some((t) => t.id === newTrackId)) return prev
+          const summary: TrackSummary = {
+            id: newTrackId,
+            filename: result.track_info?.filename || file.name,
+            bpm: result.track_info?.bpm ?? null,
+            energy: result.track_info?.energy ?? null,
+            detected_genre: result.detected_genre ?? null,
+            detected_language: result.detected_language ?? null,
+            lyrics_extracted: result.lyrics_extracted ?? false,
+            genre_tags: result.genre_tags ?? null,
+            matches_count: result.matches?.length ?? 0,
+            pitches_count: 0,
+            created_at: new Date().toISOString(),
+          }
+          return [summary, ...prev]
+        })
+      }
+      // Background refresh so the sidebar badge / list reflect the real
+      // server-side state without blocking the transition.
       void refreshMyTracks()
       // Brief beat so the user actually sees the "all steps done" state
       // before the results view appears.
@@ -673,11 +880,11 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     { key: 'dashboard', label: 'Dashboard', icon: icons.house },
     { key: 'my-tracks', label: 'My tracks', icon: icons.music, badge: tracksBadge },
     { key: 'my-matches', label: 'My matches', icon: icons.target },
-    { key: 'pitches-sent', label: 'Pitches sent', icon: icons.mailCheck, badge: pitchesBadge },
+    { key: 'pitches-sent', label: 'Songs pitched', icon: icons.mailCheck, badge: pitchesBadge },
   ]
 
   const sidebarFooterItems: { key: SidebarKey; label: string; icon: string }[] = [
-    { key: 'ai-assistant', label: 'AI assistant', icon: icons.cpu },
+    { key: 'settings', label: 'Settings', icon: icons.cpu },
     { key: 'analytics', label: 'Analytics', icon: icons.chartBar },
   ]
 
@@ -686,7 +893,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     { key: 'dashboard', label: 'Dashboard', icon: icons.house },
     { key: 'my-tracks', label: 'My tracks', icon: icons.music, badge: tracksBadge },
     { key: 'my-matches', label: 'My matches', icon: icons.target },
-    { key: 'pitches-sent', label: 'Pitches sent', icon: icons.mailCheck, badge: pitchesBadge },
+    { key: 'pitches-sent', label: 'Songs pitched', icon: icons.mailCheck, badge: pitchesBadge },
   ]
 
   // Reusable sidebar renderer.
@@ -701,6 +908,22 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           alt="PitchPal"
           className="h-7 xl:h-9 w-[88px] xl:w-[124px] object-contain object-center xl:object-left"
         />
+      </div>
+
+      {/* Upload New Track CTA — always visible, prominent. On the narrow
+          tablet sidebar (md..xl, 100px wide) we render an icon-only square
+          button so the label can't wrap onto three ugly lines. From xl up
+          the sidebar opens up to 232px and the full label fits comfortably. */}
+      <div className="px-2 xl:px-3 pt-4 pb-2">
+        <button
+          onClick={() => { goToMatchesForUpload(); triggerFilePicker() }}
+          title="Upload new track"
+          aria-label="Upload new track"
+          className="gradient-btn w-full border border-white/[0.06] text-white font-medium font-poppins text-[14px] px-0 xl:px-4 h-[48px] rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] active:translate-y-0 transition-all duration-200 ease-out"
+        >
+          <img src={icons.uploadSmall} alt="" className="size-[20px] xl:size-[18px] object-contain shrink-0" />
+          <span className="hidden xl:inline leading-none">Upload New Track</span>
+        </button>
       </div>
 
       {/* Main menu */}
@@ -776,6 +999,126 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
         }}
       />
 
+      {/* PITCH EMAIL MODAL — Ciara's flow: shows an auto-generated pitch the
+          user can edit, paste their streaming link into, copy to clipboard,
+          then confirm to log the pitch in "Songs Pitched". */}
+      {pitchDraft && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(38,17,74,0.35)', backdropFilter: 'blur(6px)' }}
+          onClick={() => { if (!pitchSending) setPitchDraft(null) }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`w-full max-w-[640px] rounded-[18px] p-6 md:p-7 flex flex-col gap-4 max-h-[90vh] overflow-y-auto ${
+              isDark
+                ? 'bg-[#120936] border border-white/[0.10] shadow-[0_30px_80px_rgba(0,0,0,0.6)]'
+                : 'bg-white border border-[rgba(129,55,246,0.15)] shadow-[0_30px_80px_rgba(129,55,246,0.25)]'
+            }`}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className={`text-[11px] font-medium tracking-[1.5px] uppercase font-poppins ${isDark ? 'text-pp-purple/80' : 'text-pp-purple-deep/70'}`}>
+                  Pitch draft
+                </p>
+                <h3 className={`mt-1 text-[20px] md:text-[22px] font-semibold font-manrope leading-tight ${textPrimary}`}>
+                  Pitch &quot;{pitchDraft.trackName}&quot; to {pitchDraft.displayArtistName}
+                </h3>
+                <p className={`mt-1 text-[12px] font-poppins ${textMuted}`}>
+                  Edit the draft, paste your streaming link, copy it into your own email, and confirm to log this in Songs Pitched.
+                </p>
+              </div>
+              <button
+                onClick={() => { if (!pitchSending) setPitchDraft(null) }}
+                disabled={pitchSending}
+                aria-label="Close"
+                className={`shrink-0 size-9 rounded-[10px] flex items-center justify-center ${
+                  isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-[rgba(129,55,246,0.06)]'
+                } disabled:opacity-40`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 19L19 5M5 5L19 19" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Streaming link input */}
+            <label className={`flex flex-col gap-1 text-[12px] font-medium font-poppins ${textPrimary}`}>
+              Streaming link <span className={`font-normal ${textMuted}`}>(SoundCloud, Spotify, Dropbox — anywhere they can listen)</span>
+              <input
+                type="url"
+                placeholder="https://"
+                value={pitchDraft.streamingLink}
+                onChange={(e) => setPitchDraft({ ...pitchDraft, streamingLink: e.target.value })}
+                className={`h-[42px] rounded-[10px] px-3 text-[14px] font-poppins outline-none transition-colors ${
+                  isDark
+                    ? 'bg-white/[0.04] border border-white/[0.10] text-white placeholder:text-white/40 focus:border-pp-purple/60'
+                    : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy placeholder:text-pp-navy/40 focus:border-pp-purple/60'
+                }`}
+              />
+            </label>
+
+            {/* Editable email body */}
+            <label className={`flex flex-col gap-1 text-[12px] font-medium font-poppins ${textPrimary}`}>
+              Pitch email
+              <textarea
+                rows={11}
+                value={pitchDraft.body}
+                onChange={(e) => setPitchDraft({ ...pitchDraft, body: e.target.value })}
+                className={`rounded-[10px] p-3 text-[13px] font-poppins leading-relaxed outline-none transition-colors resize-y ${
+                  isDark
+                    ? 'bg-white/[0.04] border border-white/[0.10] text-white/90 placeholder:text-white/40 focus:border-pp-purple/60'
+                    : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy placeholder:text-pp-navy/40 focus:border-pp-purple/60'
+                }`}
+              />
+            </label>
+
+            {/* Actions */}
+            <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-between gap-3">
+              <button
+                onClick={() => { if (!pitchSending) setPitchDraft(null) }}
+                disabled={pitchSending}
+                className={`${
+                  isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'
+                } font-medium font-poppins text-[13px] h-[42px] px-4 rounded-[10px] hover:opacity-90 disabled:opacity-40`}
+              >
+                Cancel
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => void copyPitchToClipboard()}
+                  disabled={pitchSending}
+                  className={`${
+                    isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'
+                  } font-medium font-poppins text-[13px] h-[42px] px-4 rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] transition-transform disabled:opacity-40`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <rect x="4" y="4" width="9" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+                    <path d="M11.5 4V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h.5" stroke="currentColor" strokeWidth="1.4" />
+                  </svg>
+                  {pitchCopied ? 'Copied!' : 'Copy pitch'}
+                </button>
+                <button
+                  onClick={() => void confirmPitchSend()}
+                  disabled={pitchSending}
+                  className="gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[13px] h-[42px] px-5 rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] transition-all disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {pitchSending ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" className="animate-spin" fill="none">
+                      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" strokeDasharray="56" strokeDashoffset="42" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <img src={icons.resSend} alt="" className="size-4 object-contain" />
+                  )}
+                  <span>{pitchSending ? 'Logging…' : 'Confirm pitch'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR — narrow on tablet (md..xl), wide on desktop (xl+) */}
       <aside className={`hidden md:flex flex-col w-[100px] xl:w-[232px] shrink-0 ${sidebarBg}`}>
         {renderSidebar()}
@@ -830,11 +1173,11 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               {/* Left: Avatar + name */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="size-11 rounded-full overflow-hidden shrink-0">
-                  <img src={icons.avatar} alt="John Doe" className="size-full object-cover" />
+                  {renderTopbarAvatar()}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <p className={`text-[15px] font-semibold font-poppins leading-tight ${textPrimary}`}>John Doe</p>
-                  <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>Administrator</p>
+                  <p className={`text-[15px] font-semibold font-poppins leading-tight ${textPrimary}`}>{displayName}</p>
+                  <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>{displayEmail}</p>
                 </div>
               </div>
 
@@ -936,9 +1279,51 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
             </div>
             <input
               type="text"
-              placeholder="Search music track by name, date, status etc."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true) }}
+              onFocus={() => setSearchOpen(true)}
+              onBlur={() => window.setTimeout(() => setSearchOpen(false), 150)}
+              placeholder="Search your tracks by name, genre, language…"
               className={`${searchInputCls} w-full h-[44px] rounded-[10px] pl-11 pr-4 text-[14px] font-poppins outline-none focus:border-pp-purple/50 transition-colors`}
             />
+            {/* Results dropdown */}
+            {searchOpen && searchQuery.trim() && (
+              <div className={`absolute top-[52px] left-0 right-0 z-40 rounded-[12px] py-2 max-h-[360px] overflow-y-auto ${panelBg}`}>
+                {searchResults.length === 0 ? (
+                  <p className={`px-4 py-3 text-[13px] font-poppins ${textMuted}`}>
+                    No tracks match "{searchQuery.trim()}". Try a filename, genre or language.
+                  </p>
+                ) : (
+                  searchResults.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        // mousedown fires before blur — keep the dropdown open long enough to act.
+                        e.preventDefault()
+                        setSearchQuery('')
+                        setSearchOpen(false)
+                        void openSavedTrack(t.id)
+                      }}
+                      className={`w-full text-left px-4 py-2 flex items-center gap-3 ${
+                        isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-[rgba(129,55,246,0.06)]'
+                      }`}
+                    >
+                      <div className="size-9 rounded-[8px] bg-gradient-to-r from-pp-purple to-pp-purple-deep flex items-center justify-center shrink-0">
+                        <img src={icons.resMusicNote} alt="" className="size-[18px] object-contain" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-[13px] font-medium font-poppins truncate ${textPrimary}`}>{t.filename}</p>
+                        <p className={`text-[11px] font-normal font-poppins ${textMuted}`}>
+                          {t.detected_genre || '—'}
+                          {t.matches_count > 0 && <> · {t.matches_count} match{t.matches_count === 1 ? '' : 'es'}</>}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Spacer on mobile */}
@@ -1020,11 +1405,11 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                 className={`flex items-center gap-3 rounded-[10px] px-2 py-1 -mx-2 -my-1 hover:opacity-80 transition-opacity cursor-pointer ${openPopover === 'profile' ? (isDark ? 'bg-white/[0.06]' : 'bg-[rgba(129,55,246,0.08)]') : ''}`}
               >
                 <div className="size-11 rounded-full overflow-hidden shrink-0">
-                  <img src={icons.avatar} alt="John Doe" className="size-full object-cover" />
+                  {renderTopbarAvatar()}
                 </div>
                 <div className="flex flex-col text-left">
-                  <p className={`text-[14px] font-semibold font-poppins leading-tight ${textPrimary}`}>John Doe</p>
-                  <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>Administrator</p>
+                  <p className={`text-[14px] font-semibold font-poppins leading-tight ${textPrimary}`}>{displayName}</p>
+                  <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>{displayEmail}</p>
                 </div>
                 <img
                   src={icons.chevron}
@@ -1034,7 +1419,13 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               </button>
 
               {openPopover === 'profile' && (
-                <ProfileDropdown isDark={isDark} onLogout={handleLogout} />
+                <ProfileDropdown
+                  isDark={isDark}
+                  onLogout={handleLogout}
+                  onSettings={() => { setOpenPopover(null); navigate('/settings') }}
+                  email={user?.email ?? ''}
+                  displayName={displayName}
+                />
               )}
             </div>
           </div>
@@ -1064,15 +1455,18 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               {/* User info */}
               <div className="flex items-center gap-3 mb-5">
                 <div className="size-11 rounded-full overflow-hidden shrink-0">
-                  <img src={icons.avatar} alt="John Doe" className="size-full object-cover" />
+                  {renderTopbarAvatar()}
                 </div>
                 <div className="flex flex-col">
-                  <p className={`text-[15px] font-semibold font-poppins leading-tight ${textPrimary}`}>John Doe</p>
-                  <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>Administrator</p>
+                  <p className={`text-[15px] font-semibold font-poppins leading-tight ${textPrimary}`}>{displayName}</p>
+                  <p className={`text-[12px] font-light italic font-poppins ${textMuted}`}>{displayEmail}</p>
                 </div>
               </div>
 
-              {/* 3 action icon buttons */}
+              {/* 4 action icon buttons — theme / messages / notifications /
+                  settings. The settings icon opens the Account Settings tab
+                  inside the dashboard shell so the user can edit their
+                  profile directly from the tablet drawer. */}
               <div className="flex items-center gap-3">
                 <button
                   onClick={onToggleTheme}
@@ -1098,6 +1492,18 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                 >
                   <img src={icons.bell} alt="" className="size-[20px] object-contain" />
                   <span className="absolute top-[10px] right-[12px] size-[6px] rounded-full bg-pp-blue" />
+                </button>
+
+                <button
+                  onClick={() => { goToTab('settings'); setDrawerOpen(false) }}
+                  className={`${iconBtnCls} size-11 rounded-[10px] flex items-center justify-center transition-colors cursor-pointer ${textPrimary}`}
+                  aria-label="Account settings"
+                  title="Account settings"
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M4.5 16.5c.5-3 2.6-4.6 5.5-4.6s5 1.6 5.5 4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
                 </button>
               </div>
 
@@ -1148,7 +1554,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
         />
 
         {/* MAIN CONTENT — analysing view top-aligned on mobile, centered on tablet/desktop; results view top-aligned */}
-        <main className={`flex-1 flex justify-center px-4 md:px-8 xl:px-6 py-8 md:py-12 xl:py-${view === 'results' ? '8' : '0'} pb-[100px] md:pb-12 xl:pb-${view === 'results' ? '12' : '0'} ${view === 'analysing' ? 'items-start md:items-center' : view === 'results' ? 'items-start' : 'items-center'} overflow-y-auto`}>
+        <main className={`flex-1 flex justify-center px-4 md:px-8 xl:px-6 py-8 md:py-12 xl:py-8 pb-[100px] md:pb-12 xl:pb-12 ${view === 'analysing' ? 'items-start md:items-center' : view === 'results' ? 'items-start' : 'items-center'} overflow-y-auto`}>
           {activeItem === 'my-tracks' ? (
             <MyTracksTab
               isDark={isDark}
@@ -1160,7 +1566,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               error={myTracksError}
               onOpen={openSavedTrack}
               onDelete={removeTrack}
-              onUploadNew={goToMatchesForUpload}
+              onUploadNew={goToUploadAndPick}
             />
           ) : activeItem === 'pitches-sent' ? (
             <PitchesSentTab
@@ -1171,8 +1577,272 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               loading={loadingPitches}
               error={pitchesError}
               onDelete={removePitch}
-              onUploadNew={goToMatchesForUpload}
+              onUploadNew={goToUploadAndPick}
             />
+          ) : activeItem === 'settings' ? (
+            /* ── ACCOUNT SETTINGS ── Full profile form rendered inside the
+               dashboard shell so the sidebar stays visible. Both sidebar
+               Settings click and the topbar profile dropdown's "Account
+               settings" route here. */
+            <div key="settings" className="card-swap-in w-full max-w-[920px] mx-auto flex flex-col gap-6 self-start">
+              {/* Heading — same style as default demo tabs so the visual
+                  rhythm stays consistent across the dashboard. */}
+              <div className="flex flex-col items-start gap-[14px] md:gap-[16px]">
+                <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">
+                  {tabMeta.eyebrow}
+                </p>
+                <h1 className={`text-[32px] md:text-[32px] xl:text-[42px] font-semibold leading-[1.2] xl:leading-[1.25] font-poppins ${textPrimary}`}>
+                  {tabMeta.title} <span className="gradient-text">{tabMeta.gradient}</span>
+                </h1>
+                <p className={`text-[14px] md:text-[14px] xl:text-[16px] font-normal leading-[1.6] tracking-[0.16px] font-poppins max-w-[700px] ${textMuted}`}>
+                  {tabMeta.subtitle}
+                </p>
+              </div>
+              <SettingsPanel isDark={isDark} />
+            </div>
+          ) : activeItem === 'dashboard' ? (
+            /* ── DASHBOARD / COMMAND CENTRE ── Real overview built from the
+               user's actual data: KPIs, recent tracks, recent pitches, top
+               genre + most-pitched artists, plus quick actions. */
+            <div key="dashboard" className="card-swap-in w-full max-w-[1200px] mx-auto flex flex-col gap-6 self-start">
+              {/* Hero greeting — same heading sizes/fonts as default demo
+                  tabs (32/32/42 poppins, 13px tracked eyebrow, 14/14/16
+                  subtitle) so all tabs feel uniform. */}
+              <div className={`${panelBg} rounded-[18px] p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-5 relative overflow-hidden`}>
+                <div className="absolute -top-12 -right-12 size-[220px] rounded-full opacity-30 blur-3xl bg-gradient-to-r from-pp-purple to-pp-blue pointer-events-none" />
+                <div className="size-16 rounded-full overflow-hidden border-2 border-pp-purple/40 shrink-0 relative">
+                  {userAvatarUrl
+                    ? <img src={userAvatarUrl} alt={displayName} className="size-full object-cover" />
+                    : <div className="size-full bg-gradient-to-br from-pp-purple to-pp-purple-deep flex items-center justify-center text-white font-semibold text-[22px] font-poppins">
+                        {displayName.slice(0, 1).toUpperCase()}
+                      </div>}
+                </div>
+                <div className="flex-1 min-w-0 relative">
+                  <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">Welcome back</p>
+                  <h1 className={`mt-[14px] text-[32px] md:text-[32px] xl:text-[42px] font-semibold leading-[1.2] xl:leading-[1.25] font-poppins ${textPrimary}`}>
+                    Hi {displayName.split(' ')[0]} — <span className="gradient-text">ready to pitch?</span>
+                  </h1>
+                  <p className={`mt-[14px] text-[14px] md:text-[14px] xl:text-[16px] font-normal leading-[1.6] tracking-[0.16px] font-poppins max-w-[700px] ${textMuted}`}>
+                    {myTracks.length === 0
+                      ? 'Upload your first track and PitchPal will surface the best-fit artists in seconds.'
+                      : `You've processed ${myTracks.length} track${myTracks.length === 1 ? '' : 's'} and pitched ${pitches.length} time${pitches.length === 1 ? '' : 's'} so far.`}
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0 relative">
+                  <button
+                    onClick={() => { goToMatchesForUpload(); triggerFilePicker() }}
+                    className="gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[13px] h-[42px] px-5 rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] transition-all whitespace-nowrap"
+                  >
+                    <img src={icons.uploadSmall} alt="" className="size-[16px] object-contain" />
+                    Upload new track
+                  </button>
+                  <button
+                    onClick={() => goToTab('my-matches')}
+                    className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[13px] h-[42px] px-5 rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] transition-all whitespace-nowrap`}
+                  >
+                    View matches
+                  </button>
+                </div>
+              </div>
+
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Songs processed', value: analytics?.songs_processed ?? myTracks.length, accent: 'from-pp-purple to-pp-purple-deep', tab: 'my-tracks' as SidebarKey },
+                  { label: 'Songs pitched', value: analytics?.songs_pitched ?? 0, accent: 'from-pp-blue to-pp-purple', tab: 'pitches-sent' as SidebarKey },
+                  { label: 'Artists covered', value: analytics?.artists_covered ?? 0, accent: 'from-pp-purple to-pp-blue', tab: 'analytics' as SidebarKey },
+                  { label: 'Top genre', value: analytics?.top_genre ?? '—', accent: 'from-pp-blue to-[#5ED9F0]', tab: 'analytics' as SidebarKey, isText: true },
+                ].map((kpi) => (
+                  <button
+                    key={kpi.label}
+                    onClick={() => goToTab(kpi.tab)}
+                    className={`${panelBg} rounded-[16px] p-5 text-left transition-transform hover:-translate-y-[2px]`}
+                  >
+                    <div className={`h-[3px] w-10 rounded-full bg-gradient-to-r ${kpi.accent} mb-3`} />
+                    <p className={`text-[11px] font-medium tracking-[1.2px] uppercase font-poppins ${textMuted}`}>{kpi.label}</p>
+                    {kpi.isText
+                      ? <p className={`mt-2 text-[15px] font-semibold font-manrope leading-tight line-clamp-2 ${textPrimary}`}>{kpi.value}</p>
+                      : <p className={`mt-2 text-[32px] font-semibold font-manrope leading-none ${textPrimary}`}>{kpi.value}</p>}
+                  </button>
+                ))}
+              </div>
+
+              {/* 2-col area: recent tracks + recent pitches */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Recent tracks */}
+                <div className={`${panelBg} rounded-[16px] p-5`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-[16px] font-semibold font-manrope ${textPrimary}`}>Recent tracks</h3>
+                    <button onClick={() => goToTab('my-tracks')} className="text-pp-purple text-[12px] font-medium font-poppins hover:underline">View all →</button>
+                  </div>
+                  {myTracks.length === 0 ? (
+                    <p className={`text-[13px] font-poppins ${textMuted}`}>No tracks yet. Upload one to get started.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {myTracks.slice(0, 4).map((t) => (
+                        <li key={t.id}>
+                          <button
+                            onClick={() => void openSavedTrack(t.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-[10px] text-left transition-colors ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-[rgba(129,55,246,0.05)]'}`}
+                          >
+                            <div className="size-9 rounded-[10px] bg-gradient-to-r from-pp-purple to-pp-purple-deep flex items-center justify-center shrink-0">
+                              <img src={icons.resMusicNote} alt="" className="size-[18px] object-contain" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-[13px] font-medium font-poppins truncate ${textPrimary}`}>{t.filename}</p>
+                              <p className={`text-[11px] font-poppins ${textMuted}`}>
+                                {t.detected_genre || 'Genre pending'}
+                                {t.matches_count > 0 && <> · {t.matches_count} matches</>}
+                              </p>
+                            </div>
+                            <span className={`text-[10px] font-medium font-poppins ${textMuted} shrink-0`}>
+                              {new Date(t.created_at).toLocaleDateString()}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {/* Recent pitches */}
+                <div className={`${panelBg} rounded-[16px] p-5`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-[16px] font-semibold font-manrope ${textPrimary}`}>Recent pitches</h3>
+                    <button onClick={() => goToTab('pitches-sent')} className="text-pp-purple text-[12px] font-medium font-poppins hover:underline">View all →</button>
+                  </div>
+                  {pitches.length === 0 ? (
+                    <p className={`text-[13px] font-poppins ${textMuted}`}>You haven't pitched yet. Pick a strong match on My matches to send your first pitch.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {pitches.slice(0, 4).map((p) => (
+                        <li key={p.id} className={`flex items-center gap-3 px-3 py-2 rounded-[10px] ${isDark ? 'bg-white/[0.02]' : 'bg-[rgba(129,55,246,0.04)]'}`}>
+                          <div className="size-9 rounded-full overflow-hidden bg-pp-purple/15 shrink-0">
+                            {p.artist_image
+                              ? <img src={p.artist_image} alt={p.artist_name} className="size-full object-cover" />
+                              : <div className="size-full flex items-center justify-center text-pp-purple font-semibold text-[14px] font-manrope">{p.artist_name.slice(0,1).toUpperCase()}</div>}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-[13px] font-medium font-poppins truncate ${textPrimary}`}>{p.artist_name}</p>
+                            <p className={`text-[11px] font-poppins truncate ${textMuted}`}>{p.label || p.source || 'Industry match'}</p>
+                          </div>
+                          <span className="text-[10px] font-medium font-poppins px-2 py-[2px] rounded-full bg-[rgba(0,187,123,0.12)] text-[#00BB7B] shrink-0">
+                            {p.status || 'Sent'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              {/* Insight strip — most pitched artists */}
+              {analytics && analytics.top_pitched_artists.length > 0 && (
+                <div className={`${panelBg} rounded-[16px] p-5`}>
+                  <h3 className={`text-[16px] font-semibold font-manrope mb-3 ${textPrimary}`}>Your most pitched artists</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {analytics.top_pitched_artists.map((a) => (
+                      <span
+                        key={a.artist}
+                        className={`px-3 py-[6px] rounded-full text-[12px] font-medium font-poppins ${
+                          isDark ? 'bg-pp-purple/15 text-white border border-pp-purple/30' : 'bg-pp-purple/10 text-pp-purple-deep border border-pp-purple/25'
+                        }`}
+                      >
+                        {a.artist} · {a.count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : activeItem === 'analytics' ? (
+            /* ── ANALYTICS DASHBOARD ── Real per-user stats from the backend. */
+            <div key="analytics" className="card-swap-in w-full max-w-[1120px] mx-auto flex flex-col gap-6 self-start">
+              <div className="flex flex-col items-start gap-[14px] md:gap-[16px]">
+                <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">
+                  {tabMeta.eyebrow}
+                </p>
+                <h1 className={`text-[32px] md:text-[32px] xl:text-[42px] font-semibold leading-[1.2] xl:leading-[1.25] font-poppins ${textPrimary}`}>
+                  {tabMeta.title} <span className="gradient-text">{tabMeta.gradient}</span>
+                </h1>
+                <p className={`text-[14px] md:text-[14px] xl:text-[16px] font-normal leading-[1.6] tracking-[0.16px] font-poppins max-w-[700px] ${textMuted}`}>
+                  {tabMeta.subtitle}
+                </p>
+              </div>
+
+              {analyticsLoading && (
+                <div className={`rounded-[14px] px-5 py-8 text-center text-[13px] font-poppins ${textMuted} ${panelBg}`}>Loading your stats…</div>
+              )}
+              {analyticsError && !analyticsLoading && (
+                <div className={`rounded-[14px] px-5 py-8 text-center text-[13px] font-poppins text-[#FF7B7B] ${panelBg}`}>{analyticsError}</div>
+              )}
+              {!analyticsLoading && !analyticsError && analytics && (
+                <>
+                  {/* 3 headline KPI cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                      { label: 'Songs processed', value: analytics.songs_processed, hint: 'Tracks you uploaded' },
+                      { label: 'Songs pitched', value: analytics.songs_pitched, hint: 'Tracks sent at least once' },
+                      { label: 'Artists covered', value: analytics.artists_covered, hint: 'Unique artists surfaced' },
+                    ].map((kpi) => (
+                      <div key={kpi.label} className={`rounded-[16px] p-5 ${panelBg}`}>
+                        <p className={`text-[11px] font-medium tracking-[1.4px] uppercase font-poppins ${textMuted}`}>{kpi.label}</p>
+                        <p className={`mt-2 text-[36px] font-semibold font-manrope leading-none ${textPrimary}`}>{kpi.value}</p>
+                        <p className={`mt-2 text-[12px] font-normal font-poppins ${textMuted}`}>{kpi.hint}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 2 detail panels — top genre + top pitched artists */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Top genre */}
+                    <div className={`rounded-[16px] p-5 ${panelBg}`}>
+                      <p className={`text-[11px] font-medium tracking-[1.4px] uppercase font-poppins ${textMuted}`}>Most popular genre</p>
+                      {analytics.top_genre ? (
+                        <>
+                          <p className={`mt-3 text-[20px] font-semibold font-manrope leading-tight ${textPrimary}`}>{analytics.top_genre}</p>
+                          <p className={`mt-2 text-[12px] font-normal font-poppins ${textMuted}`}>
+                            Detected on {analytics.top_genre_count} track{analytics.top_genre_count === 1 ? '' : 's'} you uploaded.
+                          </p>
+                        </>
+                      ) : (
+                        <p className={`mt-3 text-[13px] font-normal font-poppins ${textMuted}`}>
+                          Upload a track to see your most common genre here.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Top pitched artists */}
+                    <div className={`rounded-[16px] p-5 ${panelBg}`}>
+                      <p className={`text-[11px] font-medium tracking-[1.4px] uppercase font-poppins ${textMuted}`}>Most pitched artists</p>
+                      {analytics.top_pitched_artists.length === 0 ? (
+                        <p className={`mt-3 text-[13px] font-normal font-poppins ${textMuted}`}>
+                          You haven't pitched any artists yet. Once you do, your top targets will appear here.
+                        </p>
+                      ) : (
+                        <ul className="mt-3 flex flex-col gap-2">
+                          {analytics.top_pitched_artists.map((a, idx) => (
+                            <li key={a.artist} className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className={`size-7 rounded-full flex items-center justify-center text-[11px] font-semibold font-poppins ${
+                                  isDark ? 'bg-pp-purple/25 text-white' : 'bg-pp-purple/15 text-pp-purple-deep'
+                                }`}>
+                                  {idx + 1}
+                                </span>
+                                <span className={`text-[14px] font-medium font-poppins truncate ${textPrimary}`}>{a.artist}</span>
+                              </div>
+                              <span className={`text-[12px] font-normal font-poppins ${textMuted} shrink-0`}>
+                                {a.count} pitch{a.count === 1 ? '' : 'es'}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           ) : activeItem !== 'my-matches' ? (
             /* ── DEMO TAB ── Other sidebar items render a centered placeholder.
                Top-aligned on mobile/tablet, vertically centered on desktop. */
@@ -1421,7 +2091,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                 textPrimary={textPrimary}
                 textMuted={textMuted}
                 matchResult={matchResult}
-                onUploadAnother={cancelMatch}
+                onUploadAnother={goToUploadAndPick}
                 onPitch={sendPitch}
                 pitchedKeys={pitchedArtistKeys}
               />
@@ -1539,7 +2209,10 @@ function buildMatchData(matches: MatchItem[], icons: { resAvatar1?: string; resA
       topMatch: idx === 0 && isStrong,
       insight: m.brief_match || m.reason || 'No insight provided for this match.',
       tags: tags.length > 0 ? tags : ['Match'],
-      listeners: formatLargeCount(m.followers),
+      // Prefer Spotify monthly listeners when available — it's the metric
+      // clients/A&Rs actually recognise. Fall back to Deezer fans count
+      // when the scrape miss or the artist isn't on Spotify.
+      listeners: formatLargeCount(m.monthly_listeners ?? m.followers),
       albums: m.albums_count != null && m.albums_count > 0 ? String(m.albums_count) : '—',
       ringColor: idx % 2 === 0 ? 'cyan' : 'purple',
       confidence: m.confidence_level || (score >= 92 ? 'Strong Match' : score >= 85 ? 'Good Match' : 'Worth Considering'),
@@ -1734,6 +2407,22 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
   const genreTags = matchResult?.genre_tags?.slice(0, 3) ?? []
   const language = matchResult?.detected_language
 
+  // Cache indicator — show a "Cached" badge + a friendly relative time when
+  // the backend returns a cached match instead of running the matcher fresh.
+  const isCached = matchResult?.cached === true
+  const cachedRelativeLabel = (() => {
+    if (!isCached || !matchResult?.cached_at) return null
+    const then = new Date(matchResult.cached_at).getTime()
+    if (!Number.isFinite(then)) return null
+    const diffMs = Date.now() - then
+    const minutes = Math.floor(diffMs / 60_000)
+    if (minutes < 60) return `${Math.max(1, minutes)}m ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return `${days}d ago`
+  })()
+
   const filters = [
     { key: 'all' as const, label: `All (${totalMatches})` },
     { key: '90plus' as const, label: `90%+ matched${strongOnly > 0 ? ` (${strongOnly})` : ''}` },
@@ -1743,6 +2432,24 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
 
   return (
     <div className="w-full max-w-[1440px] mx-auto flex flex-col gap-6 xl:gap-7">
+      {/* Cached result badge — in-flow at the top-right of the results page.
+          Scrolls with the content (not fixed) so it only appears here, on
+          the Matched results view, and not on any other tab. */}
+      {isCached && (
+        <div className="flex justify-end -mb-2">
+          <span
+            className="inline-flex items-center gap-2 px-4 py-[8px] rounded-full text-[12px] font-semibold font-poppins tracking-[0.5px] uppercase bg-gradient-to-r from-[#FFB547] to-[#FF8A4C] text-white shadow-[0_8px_24px_rgba(255,138,76,0.45)] border border-[rgba(255,255,255,0.20)]"
+            title="Same audio file was matched before. Results returned from cache to keep them consistent across uploads."
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0">
+              <path d="M8 2v6l4 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="8" cy="8" r="6.2" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+            Cached result{cachedRelativeLabel ? <> · {cachedRelativeLabel}</> : null}
+          </span>
+        </div>
+      )}
+
       {/* Track summary card — exact CSS per spec.
           Tablet (md..xl):
             Row 1: [icon] [filename + meta]
@@ -1766,7 +2473,9 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
             </p>
             <p className={`mt-1 text-[12px] font-normal font-poppins ${textMuted}`}>
               {fileExt && <span>{fileExt}<span className="mx-1">•</span></span>}
-              Analysed just now
+              {isCached
+                ? <>Cached result{cachedRelativeLabel ? <> · matched {cachedRelativeLabel}</> : null}</>
+                : <>Analysed just now</>}
               {lyricsExtracted && (<><span className="mx-1">•</span>Lyrics extracted</>)}
               {language && language !== 'en' && (<><span className="mx-1">•</span>{language.toUpperCase()}</>)}
             </p>
@@ -2060,9 +2769,29 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
                   </button>
                 )
               })()}
-              <button className={`${viewProfileBtnCls} text-[13px] font-medium font-poppins h-[40px] px-4 rounded-[10px] hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200 ease-out flex items-center justify-center`}>
-                View profile
-              </button>
+              {(() => {
+                // Prefer the verified Spotify profile URL (set by backend
+                // enrichment). Fall back to the Deezer artist page so the
+                // button is still useful when Spotify isn't configured or
+                // the artist isn't found there.
+                const profileUrl = m.raw.spotify_url
+                  || (m.raw.deezer_id ? `https://www.deezer.com/artist/${m.raw.deezer_id}` : null)
+                const disabled = !profileUrl
+                return (
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      if (!profileUrl) return
+                      window.open(profileUrl, '_blank', 'noopener,noreferrer')
+                    }}
+                    className={`${viewProfileBtnCls} text-[13px] font-medium font-poppins h-[40px] px-4 rounded-[10px] hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200 ease-out flex items-center justify-center ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    title={profileUrl ? `Open ${m.name} on ${m.raw.spotify_url ? 'Spotify' : 'Deezer'}` : 'No profile link available'}
+                  >
+                    View profile
+                  </button>
+                )
+              })()}
               <button
                 className={`${tagBtnCls} size-[40px] rounded-[10px] flex items-center justify-center hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200 ease-out shrink-0`}
                 aria-label="Tag"
@@ -2121,44 +2850,67 @@ function EqualizerBars({ active }: { active: boolean }) {
   )
 }
 
-function ProfileDropdown({ isDark, onLogout }: { isDark: boolean; onLogout: () => void }) {
+function ProfileDropdown({
+  isDark,
+  onLogout,
+  onSettings,
+  email,
+  displayName,
+}: {
+  isDark: boolean
+  onLogout: () => void
+  onSettings: () => void
+  email: string
+  displayName: string
+}) {
   const shellCls = isDark
     ? 'bg-[#160B33] border border-white/[0.08] shadow-[0_18px_50px_rgba(0,0,0,0.5)]'
     : 'bg-white border border-[rgba(129,55,246,0.15)] shadow-[0_18px_50px_rgba(60,30,140,0.18)]'
   const itemHover = isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-[rgba(129,55,246,0.06)]'
+  const itemText = isDark ? 'text-white/85' : 'text-pp-navy'
+  const dividerCls = isDark ? 'border-white/[0.08]' : 'border-[rgba(129,55,246,0.12)]'
+  const textMuted = isDark ? 'text-white/55' : 'text-pp-navy/55'
   const dangerColor = isDark ? '#FF8A8A' : '#C73030'
 
   return (
     <div
       data-pp-popover
       role="menu"
-      className={`absolute top-full right-0 mt-2 w-[220px] rounded-[14px] overflow-hidden z-50 card-swap-in py-[6px] ${shellCls}`}
+      className={`absolute top-full right-0 mt-2 w-[240px] rounded-[14px] overflow-hidden z-50 card-swap-in ${shellCls}`}
     >
+      {/* Header — current account */}
+      <div className={`px-4 py-3 border-b ${dividerCls}`}>
+        <p className={`text-[13px] font-semibold font-poppins truncate ${itemText}`}>{displayName}</p>
+        <p className={`text-[11px] font-poppins truncate ${textMuted}`}>{email}</p>
+      </div>
+
+      {/* Account settings — the button gets itemText so the SVG's
+          currentColor inherits the right theme tint (white-ish in dark,
+          navy in light). Without this the icon went invisible in dark mode. */}
+      <button
+        role="menuitem"
+        onClick={onSettings}
+        className={`w-full flex items-center gap-3 px-4 py-[10px] text-left transition-colors ${itemHover} ${itemText}`}
+      >
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="shrink-0">
+          <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M4.5 16.5c.5-3 2.6-4.6 5.5-4.6s5 1.6 5.5 4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+        <span className={`text-[14px] font-medium font-poppins ${itemText}`}>Account settings</span>
+      </button>
+
+      {/* Logout */}
       <button
         role="menuitem"
         onClick={onLogout}
-        className={`w-full flex items-center gap-3 px-4 py-[10px] text-left transition-colors ${itemHover}`}
+        className={`w-full flex items-center gap-3 px-4 py-[10px] text-left transition-colors border-t ${dividerCls} ${itemHover}`}
       >
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="shrink-0">
-          <path
-            d="M12.5 14.1667L16.6667 10L12.5 5.83333"
-            stroke={dangerColor}
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M12.5 14.1667L16.6667 10L12.5 5.83333" stroke={dangerColor} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M16.6667 10H7.5" stroke={dangerColor} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          <path
-            d="M9.16667 17.5H5C4.55797 17.5 4.13405 17.3244 3.82149 17.0118C3.50893 16.6993 3.33333 16.2754 3.33333 15.8333V4.16667C3.33333 3.72464 3.50893 3.30072 3.82149 2.98816C4.13405 2.67559 4.55797 2.5 5 2.5H9.16667"
-            stroke={dangerColor}
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M9.16667 17.5H5C4.55797 17.5 4.13405 17.3244 3.82149 17.0118C3.50893 16.6993 3.33333 16.2754 3.33333 15.8333V4.16667C3.33333 3.72464 3.50893 3.30072 3.82149 2.98816C4.13405 2.67559 4.55797 2.5 5 2.5H9.16667" stroke={dangerColor} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span className="text-[14px] font-medium font-poppins" style={{ color: dangerColor }}>
-          Logout
-        </span>
+        <span className="text-[14px] font-medium font-poppins" style={{ color: dangerColor }}>Logout</span>
       </button>
     </div>
   )
@@ -2380,7 +3132,7 @@ function MyTracksTab({ isDark, icons, textPrimary, textMuted, tracks, loading, e
     : 'bg-[rgba(0,184,215,0.08)] border border-[rgba(0,184,215,0.40)] text-pp-blue'
 
   return (
-    <div className="w-full xl:w-[1100px] max-w-[1100px] mx-auto flex flex-col gap-[40px] md:gap-[48px] xl:gap-[56px] self-start pt-2 md:pt-4 xl:pt-12">
+    <div className="w-full xl:w-[1100px] max-w-[1100px] mx-auto flex flex-col gap-[40px] md:gap-[48px] xl:gap-[56px] self-start">
       {/* Centered hero heading — matches the My Matches layout */}
       <div className="flex flex-col items-center text-center gap-[14px] md:gap-[16px]">
         <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">
@@ -2544,7 +3296,7 @@ function PitchesSentTab({ isDark, textPrimary, textMuted, pitches, loading, erro
   }
 
   return (
-    <div className="w-full xl:w-[1100px] max-w-[1100px] mx-auto flex flex-col gap-[40px] md:gap-[48px] xl:gap-[56px] self-start pt-2 md:pt-4 xl:pt-12">
+    <div className="w-full xl:w-[1100px] max-w-[1100px] mx-auto flex flex-col gap-[40px] md:gap-[48px] xl:gap-[56px] self-start">
       {/* Centered hero heading — matches the My Matches layout */}
       <div className="flex flex-col items-center text-center gap-[14px] md:gap-[16px]">
         <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">

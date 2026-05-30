@@ -23,6 +23,15 @@ export interface MatchItem {
   followers?: number | null
   albums_count?: number | null
   spotify_id?: string | null
+  // Verified Spotify artist profile URL — used by the "View Profile" button.
+  // Deezer is the source of truth for followers/albums; Spotify is used purely
+  // for canonical artist linking because they deprecated those fields in 2024.
+  spotify_url?: string | null
+  // Scraped from the public Spotify artist page (their API has stopped
+  // exposing it on the dev tier). Frontend prefers this over Deezer fans
+  // when rendering the "Monthly listeners" stat on a match card.
+  monthly_listeners?: number | null
+  deezer_id?: number | null
 }
 
 export interface MatchSummary {
@@ -44,6 +53,11 @@ export interface MatchResponse {
   market_fit?: string
   match_summary?: MatchSummary
   track_id?: number
+  // Set by the backend when this result was served from the per-user
+  // audio-hash cache instead of running the matcher fresh. Frontend uses
+  // these to show a subtle "Cached result" indicator on the results page.
+  cached?: boolean
+  cached_at?: string
   // The backend returns a 200 with an `error` field when Claude parsing fails.
   // We surface that as a thrown ApiError below.
   error?: string
@@ -70,9 +84,12 @@ export function validateAudioFile(file: File): string | null {
   return null
 }
 
-// Backend chain (librosa → AssemblyAI → Claude) can easily take 30-60s on a
-// cold Render instance. Cap at 2 minutes so a stuck request can't hang forever.
-const REQUEST_TIMEOUT_MS = 120_000
+// Backend chain (librosa → AssemblyAI → Claude → Deezer + Spotify enrichment)
+// can take 60-150s on a cold Render instance, especially when Spotify is
+// rate-limiting and individual artist lookups hit the 10s per-call ceiling.
+// Cap generously at 4 minutes so genuinely-slow runs still surface results
+// instead of bouncing the user back to an error screen.
+const REQUEST_TIMEOUT_MS = 240_000
 
 export async function matchTrack(file: File, externalSignal?: AbortSignal): Promise<MatchResponse> {
   const form = new FormData()

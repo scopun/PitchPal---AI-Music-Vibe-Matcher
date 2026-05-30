@@ -8,6 +8,7 @@ and the rest of the app degrades gracefully (no images, "—" for stats).
 """
 
 import logging
+import re
 import sys
 import time
 from typing import Any, Optional
@@ -84,6 +85,60 @@ def _get_access_token() -> Optional[str]:
     return _token
 
 
+# Spotify serves a SEO-friendly HTML to social-card crawlers (Facebook,
+# Twitter, etc.) — that version includes an Open Graph description like
+# `Artist · 98.7M monthly listeners.`. Real browsers get the JS app shell
+# without the number. So we identify as Facebook's crawler to get the SEO
+# variant. The number is abbreviated to 3 significant figures, which is
+# fine for display ("47K listeners" vs "47,123 listeners" reads cleaner).
+_MONTHLY_LISTENERS_RE = re.compile(
+    r'"og:description"\s+content="[^"]*?Artist\s*·\s*([\d.]+)\s*([KMB])?\s*monthly\s+listeners',
+    re.IGNORECASE,
+)
+_SCRAPE_HEADERS = {
+    "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+}
+
+_SI_MULTIPLIERS = {"K": 1_000, "M": 1_000_000, "B": 1_000_000_000}
+
+
+def _fetch_monthly_listeners(spotify_id: str) -> Optional[int]:
+    """Scrape monthly listeners off the public Spotify artist page.
+
+    Spotify deprecated the API-level `followers.total` field for new dev
+    apps in 2024, but they still render an OG meta description on the
+    artist page (for social previews). We fetch as a crawler UA, parse
+    the description, and convert the abbreviated number to an int.
+    Returns None if anything goes wrong — caller treats it as "missing".
+    """
+    if not spotify_id:
+        return None
+    try:
+        resp = requests.get(
+            f"https://open.spotify.com/artist/{spotify_id}",
+            headers=_SCRAPE_HEADERS,
+            timeout=8,
+            allow_redirects=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _emit(f"monthly-listeners fetch EXCEPTION for {spotify_id}: {exc}")
+        return None
+    if resp.status_code != 200:
+        _emit(f"monthly-listeners HTTP {resp.status_code} for {spotify_id}")
+        return None
+    match = _MONTHLY_LISTENERS_RE.search(resp.text)
+    if not match:
+        _emit(f"monthly-listeners regex miss for {spotify_id}")
+        return None
+    try:
+        value = float(match.group(1))
+        suffix = (match.group(2) or "").upper()
+        multiplier = _SI_MULTIPLIERS.get(suffix, 1)
+        return int(value * multiplier)
+    except (ValueError, TypeError):
+        return None
+
+
 def _cache_get(key: str) -> Optional[dict[str, Any]]:
     if key in _artist_cache and time.time() < _artist_cache_expires.get(key, 0):
         return _artist_cache[key]
@@ -147,30 +202,35 @@ def enrich_artist(name: str) -> dict[str, Any]:
     genres = artist.get("genres") or []
     images = artist.get("images") or []
     image_url = images[0].get("url") if images else None
+    # The verified Spotify profile URL — this is the ONLY field we currently
+    # surface to the frontend (used by the "View Profile" button on match
+    # cards). All other fields are kept in the response for future use, but
+    # Deezer is the source of truth for followers/albums_count/image because
+    # Spotify deprecated those fields in their Nov 2024 API restrictions.
+    spotify_url = (artist.get("external_urls") or {}).get("spotify")
 
-    # Step 2: count albums (singles/EPs excluded — "album" group only)
+    # NOTE: We used to also call /v1/artists/{id}/albums here to populate
+    # `albums_count`. We've removed it because (a) Deezer already gives us
+    # an accurate album count, (b) Spotify's dev tier rate-limits /albums
+    # aggressively (429 responses), and (c) waiting 10s per artist for a
+    # rate-limited call was pushing the whole /match request past 2 minutes
+    # and timing out the frontend. The hybrid strategy only needs the
+    # verified artist `spotify_url` from Spotify.
     albums_count: Optional[int] = None
-    if spotify_id:
-        try:
-            albums_resp = requests.get(
-                f"https://api.spotify.com/v1/artists/{spotify_id}/albums",
-                params={"include_groups": "album", "limit": 50, "market": "US"},
-                headers=headers,
-                timeout=10,
-            )
-            albums_resp.raise_for_status()
-            albums_data = albums_resp.json()
-            albums_count = albums_data.get("total")
-            if albums_count is None and isinstance(albums_data.get("items"), list):
-                albums_count = len(albums_data["items"])
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Spotify albums fetch failed for %r: %s", name, exc)
+
+    # Monthly listeners — Spotify's Web API has deprecated this field at the
+    # API level (2024 platform restrictions), but the number IS still rendered
+    # into the public artist page HTML for SEO / preview cards. We scrape it
+    # from there. Falls back to None if the page format changes or fetch fails.
+    monthly_listeners: Optional[int] = _fetch_monthly_listeners(spotify_id) if spotify_id else None
 
     result: dict[str, Any] = {
         "artist_image": image_url,
         "followers": followers,
         "albums_count": albums_count,
         "spotify_id": spotify_id,
+        "spotify_url": spotify_url,
+        "monthly_listeners": monthly_listeners,
         "genres": genres,
         "popularity": popularity,
     }

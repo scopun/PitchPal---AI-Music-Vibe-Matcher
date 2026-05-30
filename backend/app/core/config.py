@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "PitchPal <onboarding@resend.dev>")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
     EMAIL_LOGO_URL: str = os.getenv("EMAIL_LOGO_URL", "")
+    # Destination for the pre-login "Contact us" form submissions. If left
+    # blank, submissions are logged but not emailed — useful for local dev.
+    CONTACT_FORM_EMAIL: str = os.getenv("CONTACT_FORM_EMAIL", "")
 
     # Spotify Web API (artist enrichment — images, followers, album counts)
     SPOTIFY_CLIENT_ID: str = os.getenv("SPOTIFY_CLIENT_ID", "")
