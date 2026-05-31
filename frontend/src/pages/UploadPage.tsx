@@ -376,6 +376,10 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           .toLowerCase()
         return haystack.includes(q)
       })
+      // Newest first — so re-uploads of the same track from a different day
+      // group together with the latest upload at the top.
+      .slice()
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 8)
   })()
 
@@ -527,6 +531,11 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const [pitchDraft, setPitchDraft] = useState<PitchDraft | null>(null)
   const [pitchSending, setPitchSending] = useState(false)
   const [pitchCopied, setPitchCopied] = useState(false)
+  // Post-pitch success toast — Ciara wanted a more obvious "next track / back
+  // to dashboard" affordance after confirming a pitch. We surface a fixed
+  // toast at the top with explicit CTAs that auto-dismisses after 8s.
+  const [lastPitch, setLastPitch] = useState<{ artistName: string } | null>(null)
+  const lastPitchTimerRef = useRef<number | null>(null)
 
   const buildPitchBody = (artist: MatchItem, trackName: string): string => {
     const firstName = (artist.artist || '').split(' ')[0] || 'there'
@@ -586,6 +595,10 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
         return next
       })
       setPitchDraft(null)
+      // Trigger the post-pitch toast with CTAs.
+      if (lastPitchTimerRef.current !== null) window.clearTimeout(lastPitchTimerRef.current)
+      setLastPitch({ artistName: artist.artist })
+      lastPitchTimerRef.current = window.setTimeout(() => setLastPitch(null), 8000)
     } catch (err) {
       // Treat duplicates as success — the artist was already pitched.
       if (err instanceof ApiError && err.status === 409) {
@@ -595,6 +608,9 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           return next
         })
         setPitchDraft(null)
+        if (lastPitchTimerRef.current !== null) window.clearTimeout(lastPitchTimerRef.current)
+        setLastPitch({ artistName: artist.artist })
+        lastPitchTimerRef.current = window.setTimeout(() => setLastPitch(null), 8000)
       } else {
         const message = err instanceof ApiError ? err.message : 'Could not save this pitch.'
         window.alert(message)
@@ -1000,6 +1016,61 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
         }}
       />
 
+      {/* POST-PITCH SUCCESS TOAST — Ciara's #3: after confirming a pitch,
+          give the user obvious paths to upload another track or jump back to
+          the dashboard. Fixed at the bottom-right with a brighter border so
+          it stands out against the dark dashboard background. On mobile we
+          lift it above the bottom nav so it doesn't get clipped. */}
+      {lastPitch && (
+        <div
+          className={`fixed bottom-[88px] md:bottom-6 right-4 md:right-6 z-[55] w-[calc(100%-32px)] max-w-[380px] rounded-[16px] px-5 py-4 flex flex-col gap-3 pp-confirm-scale-in ${
+            isDark
+              ? 'bg-[#1F1145] border-2 border-pp-purple shadow-[0_24px_60px_rgba(0,0,0,0.7)]'
+              : 'bg-white border-2 border-pp-purple/50 shadow-[0_24px_60px_rgba(129,55,246,0.30)]'
+          }`}
+        >
+          <button
+            onClick={() => setLastPitch(null)}
+            aria-label="Dismiss"
+            className={`absolute top-2 right-2 size-7 rounded-[8px] flex items-center justify-center ${isDark ? 'hover:bg-white/[0.06] text-white/70' : 'hover:bg-[rgba(129,55,246,0.06)] text-pp-navy/70'}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M5 19L19 5M5 5L19 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-3 pr-6">
+            <div className="size-10 rounded-full bg-[rgba(0,187,123,0.18)] flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="8.5" stroke="#00BB7B" strokeWidth="1.8" />
+                <path d="M6.5 10l2.5 2.5 4.5-4.5" stroke="#00BB7B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className={`text-[14px] font-semibold font-poppins leading-tight ${textPrimary}`}>
+                Pitch sent to {lastPitch.artistName}!
+              </p>
+              <p className={`text-[12px] font-normal font-poppins ${textMuted}`}>
+                Logged in Songs Pitched.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setLastPitch(null); goToTab('dashboard') }}
+              className={`flex-1 ${isDark ? 'bg-white/[0.06] border border-white/[0.12] text-white' : 'bg-white border border-[rgba(129,55,246,0.25)] text-pp-navy'} font-medium font-poppins text-[12px] h-[36px] px-3 rounded-[10px] whitespace-nowrap hover:-translate-y-[1px] transition-all`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => { setLastPitch(null); goToUploadAndPick() }}
+              className="flex-1 gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[12px] h-[36px] px-3 rounded-[10px] whitespace-nowrap hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] transition-all"
+            >
+              New track
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* PITCH EMAIL MODAL — Ciara's flow: shows an auto-generated pitch the
           user can edit, paste their streaming link into, copy to clipboard,
           then confirm to log the pitch in "Songs Pitched". */}
@@ -1320,6 +1391,9 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                           {t.matches_count > 0 && <> · {t.matches_count} match{t.matches_count === 1 ? '' : 'es'}</>}
                         </p>
                       </div>
+                      <span className={`text-[11px] font-medium font-poppins ${textMuted} shrink-0`}>
+                        {formatRelativeDate(t.created_at)}
+                      </span>
                     </button>
                   ))
                 )}

@@ -133,7 +133,7 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
     try {
       const result = await loginRequest(email.trim(), password)
       signIn(result.access_token, result.user)
-      navigate('/upload')
+      navigate('/dashboard')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed. Please try again.')
     } finally {
@@ -160,7 +160,7 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
     try {
       const result = await signupRequest(email.trim(), password)
       signIn(result.access_token, result.user)
-      navigate('/upload')
+      navigate('/dashboard')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Sign up failed. Please try again.')
     } finally {
@@ -195,7 +195,7 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
     try {
       const result = await loginWithGoogle(tokenResponse.access_token)
       signIn(result.access_token, result.user)
-      navigate('/upload')
+      navigate('/dashboard')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Google sign-in failed. Please try again.')
     } finally {

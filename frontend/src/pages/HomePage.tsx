@@ -33,7 +33,7 @@ export default function HomePage({ isDark, onToggleTheme }: HomePageProps) {
     const initialView = (location.state as { initialView?: string } | null)?.initialView
     if (initialView === 'signup' || initialView === 'login') return
     if (user) {
-      navigate('/upload', { replace: true })
+      navigate('/dashboard', { replace: true })
     }
   }, [user, initializing, loggingOut, navigate, location.state])
 

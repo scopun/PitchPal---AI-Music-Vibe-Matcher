@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ApiError } from '../services/api'
 import { changePassword, updateMe } from '../services/auth'
@@ -43,6 +44,7 @@ async function fileToCompressedDataUrl(file: File): Promise<string> {
 
 export default function SettingsPanel({ isDark }: SettingsPanelProps) {
   const { user, refreshUser } = useAuth()
+  const navigate = useNavigate()
 
   // Profile form state — hydrated from user once it lands.
   const [displayName, setDisplayName] = useState('')
@@ -125,7 +127,10 @@ export default function SettingsPanel({ isDark }: SettingsPanelProps) {
       })
       await refreshUser()
       setProfileSavedAt(Date.now())
-      window.setTimeout(() => setProfileSavedAt(null), 4000)
+      // Ciara's feedback: after Save, take the user back to the dashboard so
+      // it feels like the save actually happened. Brief delay lets the green
+      // confirmation banner register first.
+      window.setTimeout(() => navigate('/dashboard'), 1400)
     } catch (err) {
       setProfileError(err instanceof ApiError ? err.message : 'Could not save your profile.')
     } finally {
