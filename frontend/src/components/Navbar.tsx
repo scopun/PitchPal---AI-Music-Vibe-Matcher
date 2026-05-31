@@ -24,7 +24,7 @@ export default function Navbar({ isDark, imgs, onToggleTheme }: NavbarProps) {
     if (link === 'About Us') navigate('/about-us')
     else if (link === 'How it works') navigate('/how-it-works')
     else if (link === "Who it's for") navigate('/who-its-for')
-    else if (link === 'Dashboard') navigate('/upload')
+    else if (link === 'Dashboard') navigate('/dashboard')
     else if (link === 'Sign in') navigate('/')
     else navigate('/')
     setMobileOpen(false)
@@ -36,7 +36,7 @@ export default function Navbar({ isDark, imgs, onToggleTheme }: NavbarProps) {
   }
 
   const handleGoToDashboard = () => {
-    navigate('/upload')
+    navigate('/dashboard')
     setMobileOpen(false)
   }
 
