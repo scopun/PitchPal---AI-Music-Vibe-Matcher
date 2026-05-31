@@ -516,6 +516,24 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     triggerFilePicker()
   }
 
+  // Direct click on the "My Matches" sidebar / nav / dashboard link should
+  // give a fresh drop view when the user previously had results showing —
+  // they expect to be able to upload a new track, not stare at stale
+  // matches from earlier. Mid-analysis we leave state alone so an accidental
+  // tab nudge doesn't kill an in-flight request. `openSavedTrack` doesn't
+  // use this helper, so opening a track from My Tracks / search still
+  // shows its cached results.
+  const openMatchesTab = () => {
+    if (view === 'results' || view === 'error') {
+      setUploadedFile(null)
+      setMatchResult(null)
+      setMatchError(null)
+      setValidationError(null)
+      setView('drop')
+    }
+    goToTab('my-matches')
+  }
+
   // Pitch flow — Ciara's request: clicking "Pitch" opens a modal with an
   // auto-generated email + a streaming link the user can paste into their
   // own email client. Confirming the modal commits the pitch to the backend
@@ -950,7 +968,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           return (
             <button
               key={item.key}
-              onClick={() => goToTab(item.key)}
+              onClick={() => item.key === 'my-matches' ? openMatchesTab() : goToTab(item.key)}
               className={`flex flex-col xl:flex-row items-center xl:items-center gap-1 xl:gap-3 px-2 xl:px-3 py-3 xl:py-[10px] rounded-[10px] transition-colors text-[11px] xl:text-[14px] font-medium font-poppins ${
                 isActive ? `${activeBg} ${itemActiveText}` : `${itemInactiveText} hover:opacity-100`
               }`}
@@ -1716,7 +1734,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                     Upload New Track
                   </button>
                   <button
-                    onClick={() => goToTab('my-matches')}
+                    onClick={openMatchesTab}
                     className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[14px] h-[52px] px-5 rounded-[12px] flex items-center justify-center gap-2 hover:-translate-y-[1px] transition-all whitespace-nowrap`}
                   >
                     View matches
@@ -2194,7 +2212,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           return (
             <button
               key={item.key}
-              onClick={() => goToTab(item.key)}
+              onClick={() => item.key === 'my-matches' ? openMatchesTab() : goToTab(item.key)}
               className={`flex flex-col items-center gap-1 px-3 py-2 rounded-[10px] min-w-[64px] relative ${
                 isActive ? activeBg : ''
               }`}
@@ -2617,7 +2635,7 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
       {/* Filter / sort bar.
           Mobile: sort dropdown on top (full-width), filter pills below.
           Tablet+: filter pills inline, sort dropdown at the end. */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>
             Matched results ({matches.length}{matches.length !== totalMatches ? ` of ${totalMatches}` : ''})
@@ -2647,9 +2665,9 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
             </button>
           </div>
         </div>
-        <div className="flex flex-col-reverse md:flex-row md:flex-wrap md:items-center gap-3">
-          {/* Filter pills group */}
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col-reverse md:flex-row md:items-center gap-3">
+          {/* Filter pills group — takes available space, wraps internally if needed */}
+          <div className="flex flex-wrap items-center gap-3 md:flex-1 md:min-w-0">
             {filters.map((f) => (
               <button
                 key={f.key}
@@ -2662,10 +2680,10 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
               </button>
             ))}
           </div>
-          {/* Divider before sort — desktop only */}
-          <span className={`hidden xl:block w-px h-6 ${isDark ? 'bg-white/15' : 'bg-pp-purple/15'} mx-1`} />
-          {/* Sort dropdown — full-width on mobile, fixed on tablet+ */}
-          <div ref={sortRef} className="relative w-full md:w-[230px]">
+          {/* Divider before sort — md+ */}
+          <span className={`hidden md:block w-px h-6 ${isDark ? 'bg-white/15' : 'bg-pp-purple/15'} mx-1 shrink-0`} />
+          {/* Sort dropdown — full-width on mobile, fixed on tablet+, stays inline with pills */}
+          <div ref={sortRef} className="relative w-full md:w-[210px] md:shrink-0">
             <button
               type="button"
               onClick={() => setSortOpen((o) => !o)}
