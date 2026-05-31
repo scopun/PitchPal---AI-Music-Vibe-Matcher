@@ -125,7 +125,7 @@ export default function SettingsPanel({ isDark }: SettingsPanelProps) {
       })
       await refreshUser()
       setProfileSavedAt(Date.now())
-      window.setTimeout(() => setProfileSavedAt(null), 2200)
+      window.setTimeout(() => setProfileSavedAt(null), 4000)
     } catch (err) {
       setProfileError(err instanceof ApiError ? err.message : 'Could not save your profile.')
     } finally {
@@ -176,9 +176,6 @@ export default function SettingsPanel({ isDark }: SettingsPanelProps) {
       <form onSubmit={submitProfile} className={`${panelBg} rounded-[16px] p-5 md:p-7 flex flex-col gap-5`}>
         <div className="flex items-center justify-between gap-4">
           <h2 className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>Your profile</h2>
-          {profileSavedAt && (
-            <span className="text-[12px] font-medium font-poppins text-[#00BB7B]">Saved ✓</span>
-          )}
         </div>
 
         {/* Avatar + name row */}
@@ -309,6 +306,19 @@ export default function SettingsPanel({ isDark }: SettingsPanelProps) {
           <p className="rounded-[10px] px-4 py-3 text-[13px] font-poppins border border-[rgba(255,123,123,0.35)] bg-[rgba(255,123,123,0.08)] text-[#FF7B7B]">
             {profileError}
           </p>
+        )}
+
+        {profileSavedAt && (
+          <div
+            className="flex items-center gap-3 px-4 py-3 rounded-[12px] text-[14px] font-medium font-poppins text-[#00BB7B]"
+            style={{ background: 'rgba(0,187,123,0.10)', border: '1px solid rgba(0,187,123,0.28)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="shrink-0">
+              <circle cx="10" cy="10" r="8.5" stroke="#00BB7B" strokeWidth="1.5" />
+              <path d="M6.5 10l2.5 2.5 4.5-4.5" stroke="#00BB7B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Profile saved successfully!
+          </div>
         )}
 
         <div className="flex justify-end">
