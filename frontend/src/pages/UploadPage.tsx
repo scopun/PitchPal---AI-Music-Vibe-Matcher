@@ -1330,9 +1330,9 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           {/* Spacer on mobile */}
           <div className="md:hidden flex-1" />
 
-          {/* Upload button — opens file picker */}
+          {/* Upload button — opens file picker after navigating to My Matches */}
           <button
-            onClick={triggerFilePicker}
+            onClick={() => { goToMatchesForUpload(); triggerFilePicker() }}
             className="gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[13px] md:text-[14px] px-4 md:px-5 h-[40px] md:h-[44px] rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] active:translate-y-0 transition-all duration-200 ease-out shrink-0"
           >
             <img src={icons.uploadSmall} alt="" className="size-[16px] md:size-[18px] object-contain" />
@@ -1609,37 +1609,41 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               {/* Hero greeting — same heading sizes/fonts as default demo
                   tabs (32/32/42 poppins, 13px tracked eyebrow, 14/14/16
                   subtitle) so all tabs feel uniform. */}
-              <div className={`${panelBg} rounded-[18px] p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-5 relative overflow-hidden`}>
+              <div className={`${panelBg} rounded-[18px] p-6 md:p-8 flex flex-col gap-5 relative overflow-hidden`}>
                 <div className="absolute -top-12 -right-12 size-[220px] rounded-full opacity-30 blur-3xl bg-gradient-to-r from-pp-purple to-pp-blue pointer-events-none" />
-                <div className="size-16 rounded-full overflow-hidden border-2 border-pp-purple/40 shrink-0 relative">
-                  {userAvatarUrl
-                    ? <img src={userAvatarUrl} alt={displayName} className="size-full object-cover" />
-                    : <div className="size-full bg-gradient-to-br from-pp-purple to-pp-purple-deep flex items-center justify-center text-white font-semibold text-[22px] font-poppins">
-                        {displayName.slice(0, 1).toUpperCase()}
-                      </div>}
+                {/* Avatar + greeting row */}
+                <div className="flex items-center gap-5 relative">
+                  <div className="size-16 rounded-full overflow-hidden border-2 border-pp-purple/40 shrink-0">
+                    {userAvatarUrl
+                      ? <img src={userAvatarUrl} alt={displayName} className="size-full object-cover" />
+                      : <div className="size-full bg-gradient-to-br from-pp-purple to-pp-purple-deep flex items-center justify-center text-white font-semibold text-[22px] font-poppins">
+                          {displayName.slice(0, 1).toUpperCase()}
+                        </div>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">Welcome back</p>
+                    <h1 className={`mt-[6px] text-[28px] md:text-[32px] xl:text-[38px] font-semibold leading-[1.2] font-poppins ${textPrimary}`}>
+                      Hi {displayName.split(' ')[0]} — <span className="gradient-text">ready to pitch?</span>
+                    </h1>
+                    <p className={`mt-[8px] text-[13px] md:text-[14px] font-normal leading-[1.6] tracking-[0.16px] font-poppins max-w-[680px] ${textMuted}`}>
+                      {myTracks.length === 0
+                        ? 'Upload your first track and PitchPal will surface the best-fit artists in seconds.'
+                        : `You've processed ${myTracks.length} track${myTracks.length === 1 ? '' : 's'} and pitched ${pitches.length} time${pitches.length === 1 ? '' : 's'} so far.`}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0 relative">
-                  <p className="text-pp-purple text-[13px] font-medium tracking-[0.26px] uppercase font-poppins">Welcome back</p>
-                  <h1 className={`mt-[14px] text-[32px] md:text-[32px] xl:text-[42px] font-semibold leading-[1.2] xl:leading-[1.25] font-poppins ${textPrimary}`}>
-                    Hi {displayName.split(' ')[0]} — <span className="gradient-text">ready to pitch?</span>
-                  </h1>
-                  <p className={`mt-[14px] text-[14px] md:text-[14px] xl:text-[16px] font-normal leading-[1.6] tracking-[0.16px] font-poppins max-w-[700px] ${textMuted}`}>
-                    {myTracks.length === 0
-                      ? 'Upload your first track and PitchPal will surface the best-fit artists in seconds.'
-                      : `You've processed ${myTracks.length} track${myTracks.length === 1 ? '' : 's'} and pitched ${pitches.length} time${pitches.length === 1 ? '' : 's'} so far.`}
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0 relative">
+                {/* CTA row — upload prominent full-width, view matches secondary */}
+                <div className="flex gap-3 relative">
                   <button
                     onClick={() => { goToMatchesForUpload(); triggerFilePicker() }}
-                    className="gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[13px] h-[42px] px-5 rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] transition-all whitespace-nowrap"
+                    className="gradient-btn flex-1 border border-white/[0.06] text-white font-semibold font-poppins text-[15px] h-[52px] rounded-[12px] flex items-center justify-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_12px_28px_rgba(129,55,246,0.50)] transition-all"
                   >
-                    <img src={icons.uploadSmall} alt="" className="size-[16px] object-contain" />
-                    Upload new track
+                    <img src={icons.uploadSmall} alt="" className="size-[18px] object-contain" />
+                    Upload New Track
                   </button>
                   <button
                     onClick={() => goToTab('my-matches')}
-                    className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[13px] h-[42px] px-5 rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] transition-all whitespace-nowrap`}
+                    className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[14px] h-[52px] px-5 rounded-[12px] flex items-center justify-center gap-2 hover:-translate-y-[1px] transition-all whitespace-nowrap`}
                   >
                     View matches
                   </button>
@@ -1982,6 +1986,13 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                 </div>
               </div>
 
+              {/* Animated progress bar — keeps the user anchored while the 40-60s pipeline runs */}
+              <div className={`w-full max-w-[360px] h-[3px] rounded-full overflow-hidden relative ${isDark ? 'bg-white/[0.08]' : 'bg-pp-purple/[0.10]'}`}>
+                {analysingStep < 4
+                  ? <div className="pp-progress-bar" />
+                  : <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pp-purple to-pp-blue" />}
+              </div>
+
               {/* Progress steps — animated based on analysingStep */}
               <div className="flex flex-col gap-5 items-start">
                 {[
@@ -2093,6 +2104,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                 textMuted={textMuted}
                 matchResult={matchResult}
                 onUploadAnother={goToUploadAndPick}
+                onDashboard={() => goToTab('dashboard')}
                 onPitch={sendPitch}
                 pitchedKeys={pitchedArtistKeys}
               />
@@ -2145,6 +2157,7 @@ interface ResultsViewProps {
   textMuted: string
   matchResult: MatchResponse | null
   onUploadAnother: () => void
+  onDashboard: () => void
   onPitch: (artist: MatchItem, trackId: number) => Promise<boolean>
   pitchedKeys: Set<string>
 }
@@ -2279,7 +2292,7 @@ function CircularProgress({ value, color, isDark }: { value: number; color: 'cya
   )
 }
 
-function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matchResult, onUploadAnother, onPitch, pitchedKeys }: ResultsViewProps) {
+function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matchResult, onUploadAnother, onDashboard, onPitch, pitchedKeys }: ResultsViewProps) {
   const [activeFilter, setActiveFilter] = useState<'all' | '90plus' | 'whoslooking' | 'industry'>('all')
   const [pitchingArtist, setPitchingArtist] = useState<string | null>(null)
 
@@ -2531,19 +2544,34 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
           Mobile: sort dropdown on top (full-width), filter pills below.
           Tablet+: filter pills inline, sort dropdown at the end. */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className={`text-[18px] font-semibold font-manrope ${textPrimary}`}>
             Matched results ({matches.length}{matches.length !== totalMatches ? ` of ${totalMatches}` : ''})
           </h2>
-          <button
-            onClick={onUploadAnother}
-            className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[12px] h-[36px] px-4 rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] transition-all duration-200 ease-out whitespace-nowrap`}
-            aria-label="Upload another track"
-          >
-            <img src={icons.uploadSmall} alt="" className="size-[14px] object-contain" />
-            <span className="hidden md:inline">Upload another track</span>
-            <span className="md:hidden">New track</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onDashboard}
+              className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[12px] h-[36px] px-4 rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] transition-all duration-200 ease-out whitespace-nowrap`}
+              aria-label="Go to dashboard"
+            >
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" className="shrink-0">
+                <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+              <span className="hidden md:inline">Dashboard</span>
+            </button>
+            <button
+              onClick={onUploadAnother}
+              className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[12px] h-[36px] px-4 rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] transition-all duration-200 ease-out whitespace-nowrap`}
+              aria-label="Upload another track"
+            >
+              <img src={icons.uploadSmall} alt="" className="size-[14px] object-contain" />
+              <span className="hidden md:inline">Upload another track</span>
+              <span className="md:hidden">New track</span>
+            </button>
+          </div>
         </div>
         <div className="flex flex-col-reverse md:flex-row md:flex-wrap md:items-center gap-3">
           {/* Filter pills group */}
@@ -3319,8 +3347,11 @@ function PitchesSentTab({ isDark, textPrimary, textMuted, pitches, loading, erro
           </h2>
           <button
             onClick={onUploadNew}
-            className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy'} font-medium font-poppins text-[13px] md:text-[14px] h-[44px] px-4 md:px-5 rounded-[10px] flex items-center gap-2 whitespace-nowrap`}
+            className="gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[13px] md:text-[14px] h-[44px] px-4 md:px-5 rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] transition-all whitespace-nowrap"
           >
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0">
+              <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
             <span>New match</span>
           </button>
         </div>
