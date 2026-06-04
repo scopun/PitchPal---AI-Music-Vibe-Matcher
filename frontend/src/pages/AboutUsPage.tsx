@@ -121,7 +121,7 @@ export default function AboutUsPage({ isDark, onToggleTheme }: AboutUsPageProps)
           <div className="flex flex-col gap-8 md:gap-10">
             <div className="flex flex-col gap-3">
               <p className={sectionEyebrow}>Our Story</p>
-              <h2 className={sectionHeading}>From Stage to Platform</h2>
+              <h2 className={sectionHeading}>Built by a songwriter, for songwriters</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 xl:gap-12">
               <p className={`text-[14px] md:text-[15px] xl:text-[16px] font-normal leading-[1.7] tracking-[0.16px] font-poppins ${textMuted}`}>
@@ -130,6 +130,25 @@ export default function AboutUsPage({ isDark, onToggleTheme }: AboutUsPageProps)
               <p className={`text-[14px] md:text-[15px] xl:text-[16px] font-normal leading-[1.7] tracking-[0.16px] font-poppins ${textMuted}`}>
                 That experience shaped everything that followed. Through Atlantic Records, Universal Music Publishing and over a decade as Senior Director of Creative at BMG — working with the likes of <span className={storyBoldCls}>Jay-Z, Chris Martin, Ed Sheeran</span>, and writers including <span className={storyBoldCls}>Gez O'Connell, Tom Mann and Mojam</span> — the songwriter's perspective has always driven her work. PitchPal is the tool she wished had existed all along.
               </p>
+            </div>
+
+            {/* Career Highlights card */}
+            <div className={`${cardCls} rounded-[16px] md:rounded-[18px] xl:rounded-[20px] p-6 md:p-7 xl:p-[34px]`}>
+              <p className={`${sectionEyebrow} mb-4 md:mb-5`}>Career Highlights</p>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                {[
+                  'Bellefire — signed to Virgin Records & Atlantic Records',
+                  "Toured with Boyzone, Westlife and Destiny's Child",
+                  'Platinum singles, Top of the Pops performances',
+                  'Atlantic Records · Universal Music Publishing · BMG (Senior Director of Creative)',
+                  'Worked with Jay-Z, Chris Martin, Ed Sheeran and many more',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="size-1.5 rounded-full bg-pp-blue shrink-0 mt-[10px]" />
+                    <span className={`text-[14px] md:text-[15px] font-normal leading-[1.6] font-poppins ${textMuted}`}>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
@@ -166,6 +185,28 @@ export default function AboutUsPage({ isDark, onToggleTheme }: AboutUsPageProps)
       </section>
       </AnimateOnScroll>
 
+      {/* OUR MISSION */}
+      <AnimateOnScroll>
+      <section className={`relative overflow-hidden ${isDark ? 'border-y border-white/[0.07]' : 'border-y border-[rgba(129,55,246,0.1)]'}`}>
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-[70px] py-[60px] md:py-[70px] xl:py-[100px]">
+          <div className="flex flex-col gap-8 md:gap-10">
+            <div className="flex flex-col gap-3">
+              <p className={sectionEyebrow}>Our Mission</p>
+              <h2 className={sectionHeading}>Every great song deserves to find its artist</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 xl:gap-12">
+              <p className={`text-[14px] md:text-[15px] xl:text-[16px] font-normal leading-[1.7] tracking-[0.16px] font-poppins ${textMuted}`}>
+                PitchPal uses AI to analyse audio, extract lyrics and understand musical nuance — then surfaces the artists most likely to connect with a track, fast.
+              </p>
+              <p className={`text-[14px] md:text-[15px] xl:text-[16px] font-normal leading-[1.7] tracking-[0.16px] font-poppins ${textMuted}`}>
+                We give songwriters, managers and publishers the edge that the best A&R professionals have spent careers building, and make it available to everyone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      </AnimateOnScroll>
+
       {/* OUR VALUES */}
       <AnimateOnScroll>
       <section className={`relative overflow-hidden ${isDark ? 'border-y border-white/[0.07] bg-gradient-to-r from-[rgba(129,55,246,0.04)] to-[rgba(100,26,190,0.04)]' : 'border-y border-[rgba(129,55,246,0.1)] bg-gradient-to-r from-[rgba(129,55,246,0.03)] to-[rgba(100,26,190,0.03)]'}`}>
@@ -173,7 +214,7 @@ export default function AboutUsPage({ isDark, onToggleTheme }: AboutUsPageProps)
           <div className="flex flex-col gap-8 md:gap-10">
             <div className="flex flex-col gap-3">
               <p className={sectionEyebrow}>Our Values</p>
-              <h2 className={sectionHeading}>What We Believe In</h2>
+              <h2 className={sectionHeading}>What we stand for</h2>
             </div>
 
             {/* 5 cards — mobile: 1 col stack | tablet: 2 cols + last full-width (with order swap) | desktop: row1 = 3 cards (col-span-2 of 6), row2 = 2 wider cards (col-span-3 of 6) */}

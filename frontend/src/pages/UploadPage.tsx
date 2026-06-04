@@ -1405,7 +1405,8 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                       <div className="min-w-0 flex-1">
                         <p className={`text-[13px] font-medium font-poppins truncate ${textPrimary}`}>{t.filename}</p>
                         <p className={`text-[11px] font-normal font-poppins ${textMuted}`}>
-                          {t.detected_genre || '—'}
+                          <span className="font-medium text-pp-purple">{formatTrackId(t.id)}</span>
+                          {t.detected_genre && <> · {t.detected_genre}</>}
                           {t.matches_count > 0 && <> · {t.matches_count} match{t.matches_count === 1 ? '' : 'es'}</>}
                         </p>
                       </div>
@@ -1788,7 +1789,8 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                             <div className="min-w-0 flex-1">
                               <p className={`text-[13px] font-medium font-poppins truncate ${textPrimary}`}>{t.filename}</p>
                               <p className={`text-[11px] font-poppins ${textMuted}`}>
-                                {t.detected_genre || 'Genre pending'}
+                                <span className="font-medium text-pp-purple">{formatTrackId(t.id)}</span>
+                                {t.detected_genre && <> · {t.detected_genre}</>}
                                 {t.matches_count > 0 && <> · {t.matches_count} matches</>}
                               </p>
                             </div>
@@ -2574,9 +2576,24 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
 
           {/* Track info — Manrope font */}
           <div className="flex-1 min-w-0">
-            <p className={`text-[18px] md:text-[20px] font-semibold font-manrope leading-tight truncate ${textPrimary}`} title={trackFilename}>
-              {trackFilename}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className={`text-[18px] md:text-[20px] font-semibold font-manrope leading-tight truncate ${textPrimary}`} title={trackFilename}>
+                {trackFilename}
+              </p>
+              {matchResult?.track_id != null && (
+                <span
+                  className="px-2 py-[3px] rounded-full text-[11px] font-semibold font-mono tracking-[0.5px] shrink-0"
+                  style={{
+                    background: isDark ? 'rgba(129,55,246,0.18)' : 'rgba(129,55,246,0.12)',
+                    border: `1px solid ${isDark ? 'rgba(129,55,246,0.45)' : 'rgba(129,55,246,0.32)'}`,
+                    color: isDark ? '#C4A4FF' : '#641ABE',
+                  }}
+                  title="Track reference ID — quote this when reporting bugs"
+                >
+                  {formatTrackId(matchResult.track_id)}
+                </span>
+              )}
+            </div>
             <p className={`mt-1 text-[12px] font-normal font-poppins ${textMuted}`}>
               {fileExt && <span>{fileExt}<span className="mx-1">•</span></span>}
               {isCached
@@ -3229,6 +3246,15 @@ interface MyTracksTabProps {
   onUploadNew: () => void
 }
 
+// Format a track's database id as a user-visible reference Ciara can quote
+// in bug reports / emails ("PP-247 isn't matching properly"). Zero-padded
+// to 3 chars so low IDs look intentional (PP-001 not PP-1); IDs above 999
+// just show their full digits.
+function formatTrackId(id: number | null | undefined): string {
+  if (id == null || !Number.isFinite(id)) return ''
+  return `PP-${String(id).padStart(3, '0')}`
+}
+
 function formatRelativeDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
@@ -3340,7 +3366,20 @@ function MyTracksTab({ isDark, icons, textPrimary, textMuted, tracks, loading, e
                   <img src={icons.musicNote} alt="" className="size-[24px] object-contain" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[15px] font-semibold font-manrope leading-tight truncate ${textPrimary}`}>{t.filename}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className={`text-[15px] font-semibold font-manrope leading-tight truncate ${textPrimary}`}>{t.filename}</p>
+                    <span
+                      className="px-2 py-[2px] rounded-full text-[10px] font-semibold font-mono tracking-[0.5px] shrink-0"
+                      style={{
+                        background: isDark ? 'rgba(129,55,246,0.15)' : 'rgba(129,55,246,0.10)',
+                        border: `1px solid ${isDark ? 'rgba(129,55,246,0.40)' : 'rgba(129,55,246,0.30)'}`,
+                        color: isDark ? '#C4A4FF' : '#641ABE',
+                      }}
+                      title="Track reference ID — quote this when reporting bugs"
+                    >
+                      {formatTrackId(t.id)}
+                    </span>
+                  </div>
                   <p className={`mt-1 text-[12px] font-normal font-poppins ${textMuted}`}>
                     {formatRelativeDate(t.created_at)}
                     {t.detected_genre && (<><span className="mx-1">•</span>{t.detected_genre}</>)}
@@ -3520,6 +3559,8 @@ function PitchesSentTab({ isDark, textPrimary, textMuted, pitches, loading, erro
                   <div className="flex-1 min-w-0">
                     <p className={`text-[15px] font-semibold font-manrope leading-tight truncate ${textPrimary}`}>{p.artist_name}</p>
                     <p className={`mt-1 text-[12px] font-normal font-poppins ${textMuted}`}>
+                      <span className="font-semibold text-pp-purple font-mono tracking-[0.5px]">{formatTrackId(p.track_id)}</span>
+                      <span className="mx-1">·</span>
                       {p.track_filename ?? 'Unknown track'}
                       {p.label && (<><span className="mx-1">•</span>{p.label}</>)}
                       <span className="mx-1">•</span>
