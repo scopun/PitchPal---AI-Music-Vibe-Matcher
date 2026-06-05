@@ -37,13 +37,6 @@ export default function Footer({ isDark, imgs }: FooterProps) {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/terms-of-service')}
-            className="hover:opacity-70 transition-opacity bg-transparent border-0 p-0 font-light text-inherit cursor-pointer"
-          >
-            Terms of Service
-          </button>
-          <button
-            type="button"
             onClick={() => navigate('/contact')}
             className="hover:opacity-70 transition-opacity bg-transparent border-0 p-0 font-light text-inherit cursor-pointer"
           >

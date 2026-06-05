@@ -65,18 +65,34 @@ def build_audio_hints(tempo, acousticness, danceability, energy, vocal_hint):
     else:
         tempo_h = "VERY FAST — EDM/drum&bass"
 
-    if danceability > 0.8 and acousticness < 0.3:
-        genre_sig = "DANCE/ELECTRONIC territory"
-    elif danceability > 0.7 and acousticness >= 0.35:
-        genre_sig = "ROOTS-POP/COUNTRY-POP — high danceability but acoustic warmth = NOT pure dance"
-    elif acousticness > 0.55 and danceability < 0.6:
-        genre_sig = "ACOUSTIC/FOLK/SINGER-SONGWRITER territory"
-    elif acousticness > 0.4 and tempo < 95:
-        genre_sig = "SINGER-SONGWRITER/BALLAD/SOUL territory"
+    # Genre signal — be explicit about NOT-dance signals so the matcher
+    # stops defaulting to Jonas Blue / Sigala / Clean Bandit / Meduza for
+    # vocal-led tracks. Order matters: cheaper rules first, fallback last.
+    if danceability > 0.8 and acousticness < 0.3 and tempo > 115:
+        genre_sig = "DANCE/ELECTRONIC territory — dance artists OK here"
+    elif acousticness >= 0.55:
+        genre_sig = (
+            "ACOUSTIC/FOLK/SINGER-SONGWRITER territory — "
+            "DO NOT match dance artists (Sigala, Meduza, Jonas Blue, Clean Bandit, "
+            "Gorgon City, SG Lewis, Duke Dumont, Guetta). Match singer-songwriter, "
+            "pop, indie, country-pop artists."
+        )
+    elif acousticness >= 0.35 and danceability >= 0.65:
+        genre_sig = (
+            "ROOTS-POP / COUNTRY-POP / POP — high danceability with acoustic warmth = "
+            "NOT pure dance. Match pop, country-pop, indie-pop artists, NOT EDM/dance."
+        )
+    elif acousticness >= 0.35 and tempo < 110:
+        genre_sig = (
+            "SINGER-SONGWRITER / BALLAD / SOUL territory — "
+            "DO NOT match dance/EDM artists. Match vocal-led pop, soul, R&B, indie."
+        )
     elif energy < 0.4:
-        genre_sig = "INTIMATE/QUIET — ballad or atmospheric"
+        genre_sig = "INTIMATE/QUIET — ballad or atmospheric — match vocal-led artists, NOT dance"
+    elif danceability >= 0.75 and tempo >= 110:
+        genre_sig = "POP/DANCE-POP territory — could be Dua Lipa / RAYE / Mae Muller style, not pure EDM"
     else:
-        genre_sig = "MAINSTREAM POP territory"
+        genre_sig = "MAINSTREAM POP territory — vocal-led pop artists, NOT dance"
 
     return production, tempo_h, genre_sig
 
@@ -107,10 +123,20 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected
     acousticness = audio_features.get('acousticness', 0.5)
     danceability = audio_features.get('danceability', 0.5)
     median_f0 = audio_features.get('median_f0', 0)
+    vocal_confidence = audio_features.get('vocal_confidence', 0.0)
 
-    if median_f0 > 180:
+    # Vocal gender classification — only trust the call when PYIN found a
+    # meaningful number of voiced frames. Below 15% voiced frames we treat
+    # the signal as unreliable (instrumental, heavily produced, or vocal
+    # buried under instrumentation) and return Unclear so the matcher
+    # doesn't over-index on a misleading hint. Cutoff at 175 Hz keeps
+    # baritone males (lower 100-170 Hz) in the Male bucket and pushes
+    # mezzo/soprano female (200+ Hz) firmly into Female.
+    if vocal_confidence < 0.15 or median_f0 <= 0:
+        vocal_hint = "Unclear/instrumental"
+    elif median_f0 > 175:
         vocal_hint = "Female vocals"
-    elif median_f0 > 100:
+    elif median_f0 > 80:
         vocal_hint = "Male vocals"
     else:
         vocal_hint = "Unclear/instrumental"
@@ -125,7 +151,19 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected
 
     if has_text and has_audio:
         mode = "LYRICS + AUDIO"
-        song_data = f"LYRICS:{lang_note}\n{cleaned_lyrics}\n\nAudio: BPM {tempo:.0f}, Energy {energy:.2f}, Acousticness {acousticness:.2f}, Danceability {danceability:.2f}, Vocals: {vocal_hint}"
+        # Include interpretation hints in LYRICS+AUDIO mode too — previously
+        # these were only sent in AUDIO ONLY mode, so the matcher saw raw
+        # numbers without context (e.g. "Acousticness 0.55" without knowing
+        # that means "acoustic warmth = NOT pure dance"). This was the main
+        # driver behind the dance-heavy bias on singer-songwriter tracks.
+        prod, tempo_h, genre_sig = build_audio_hints(tempo, acousticness, danceability, energy, vocal_hint)
+        song_data = (
+            f"LYRICS:{lang_note}\n{cleaned_lyrics}\n\n"
+            f"Audio: BPM {tempo:.0f} ({tempo_h}), Energy {energy:.2f}, "
+            f"Acousticness {acousticness:.2f} ({prod}), "
+            f"Danceability {danceability:.2f} ({genre_sig}), "
+            f"Vocals: {vocal_hint}"
+        )
     elif has_text:
         mode = "DESCRIPTION ONLY"
         song_data = f"DESCRIPTION:{lang_note}\n{cleaned_lyrics}"
@@ -162,6 +200,40 @@ SONIC WORLD RULES — CRITICAL:
 - Singer-songwriter sparse production → Lewis Capaldi, Cian Ducrot, Sam Fischer, JP Saxe
 - Underground dark electronic → Anyma, not Meduza or Sigala
 - If a song is clearly a ballad/singer-songwriter → return those artists even if not on Who's Looking list
+
+VOCAL GENDER — HARD RULE:
+The Vocals field tells you the lead vocal gender. This is a HARD filter:
+- "Male vocals" → matches MUST be predominantly male artists. A male singer-
+  songwriter pitching to female pop artists makes no creative sense (the song
+  would need to be re-recorded by the artist, so the artist must be able to
+  sing this melody in their own range). Acceptable matches: Dermot Kennedy,
+  James Arthur, Lewis Capaldi, Sam Fischer, James Morrison, Myles Smith,
+  Cian Ducrot, Niall Horan, Tom Grennan, JP Saxe, Foy Vance, Calum Scott,
+  Dean Lewis. ALWAYS prefer male artists when vocal is male.
+- "Female vocals" → matches MUST be predominantly female artists. Acceptable
+  matches: Sigrid, Ellie Goulding, Becky Hill, Jess Glynne, Cat Burns,
+  Paloma Faith, RAYE, Mae Muller, Sasha Sloan, Maisie Peters, Holly Humberstone.
+- "Unclear/instrumental" → no gender constraint, judge on sonic world only.
+- Mixed-vocal exceptions allowed only when the artist clearly performs in
+  both registers (e.g. Calvin Harris with a male feature → could match a
+  male vocal song even though Calvin's brand skews mixed). Document the
+  reasoning in the reason field.
+- A "male vocal" song returning >50% female artists is a FAILURE STATE —
+  reject the match list and prioritise male artists.
+
+DANCE BIAS — HARD RULE:
+The matcher has historically defaulted to dance-heavy artists (Sigala,
+Meduza, Jonas Blue, Clean Bandit, Gorgon City, Duke Dumont, SG Lewis,
+LF System, Disciples, David Guetta) when uncertain. STOP.
+- Only return dance artists when audio shows ALL of: Acousticness < 0.30,
+  Danceability > 0.75, BPM > 115, Energy > 0.55, electronic production.
+- If audio shows Acousticness ≥ 0.40 OR Danceability < 0.70 → the song is
+  NOT pure dance. Return singer-songwriter, pop, indie, R&B, or country-pop
+  artists instead, EVEN if their genre tags overlap slightly with the song.
+- Cat Burns / CMAT / Foy Vance / Dermot Kennedy / James Morrison / James
+  Arthur style vocal-led tracks → pop, indie, RnB, alt-pop, country-pop
+  artists. NOT Jonas Blue / Sigala / Clean Bandit / Gorgon City / Guetta.
+- When in doubt, default to singer-songwriter and pop — not dance.
 
 CRITICAL NOT_THIS ENFORCEMENT:
 Before assigning a score to ANY artist, check their NOT_THIS field carefully.

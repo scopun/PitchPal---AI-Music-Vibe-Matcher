@@ -8,25 +8,94 @@ def separate_components(y, sr):
 
 
 def analyze_vocal_melody(y_harmonic, sr):
-    pitches, magnitudes = librosa.piptrack(
-        y=y_harmonic, sr=sr,
-        fmin=librosa.note_to_hz('C2'),
-        fmax=librosa.note_to_hz('C6')
-    )
-    pitch_indices = np.argmax(magnitudes, axis=0)
-    pitch_vals = []
+    # Band-aware vocal F0 detection.
+    #
+    # Earlier versions (piptrack, then naive PYIN-median) all suffered the
+    # same problem: instrumental pitches (bass guitar E2 = 82 Hz, piano /
+    # guitar harmonics > 400 Hz) dominated the voiced-frame pool and
+    # dragged the median into the wrong gender bucket. Track 3 (a clearly
+    # female J-pop vocal) was returning median F0 = 69.7 Hz because PYIN
+    # locked onto the synth bass, not the singer.
+    #
+    # New approach: keep PYIN over the full C2-C6 range so we don't lose
+    # baritone or soprano frames, but then bucket voiced frames into
+    # frequency BANDS (bass / male / female / high) and pick the band that
+    # carries the most confidence-weighted evidence among the two VOCAL
+    # bands (male / female). Median F0 is then computed over that vocal
+    # band's frames only — bass and high-instrumental frames are ignored
+    # for the gender call.
+    try:
+        f0, voiced_flag, voiced_prob = librosa.pyin(
+            y_harmonic,
+            sr=sr,
+            fmin=librosa.note_to_hz('C2'),
+            fmax=librosa.note_to_hz('C6'),
+            frame_length=2048,
+        )
+        mask = voiced_flag & (voiced_prob > 0.5) & ~np.isnan(f0)
+        voiced_f0 = f0[mask]
+        voiced_p = voiced_prob[mask]
 
-    for t in range(magnitudes.shape[1]):
-        index = pitch_indices[t]
-        if magnitudes[index, t] > np.median(magnitudes):
-            pitch_vals.append(pitches[index, t])
+        if voiced_f0.size == 0:
+            median_f0 = 0.0
+            vocal_confidence = 0.0
+        else:
+            # Frequency bands
+            bass_mask = voiced_f0 < 100                            # bass guitar, low instruments
+            male_mask = (voiced_f0 >= 100) & (voiced_f0 < 175)     # male vocal range
+            female_mask = (voiced_f0 >= 175) & (voiced_f0 < 400)   # female vocal range
+            high_mask = voiced_f0 >= 400                           # instruments / harmonics
 
-    median_f0 = np.median(pitch_vals) if pitch_vals else 0.0
+            # Confidence-weighted score per band
+            male_score = float(voiced_p[male_mask].sum())
+            female_score = float(voiced_p[female_mask].sum())
+            total_score = float(voiced_p.sum())
+
+            vocal_score = male_score + female_score
+            if vocal_score == 0:
+                # No frames in vocal range — likely instrumental track
+                median_f0 = 0.0
+                vocal_confidence = 0.0
+            else:
+                # Decide dominant vocal band (clear winner if ratio >= 1.5,
+                # otherwise treat as mixed and use combined median)
+                if female_score >= 1.5 * male_score:
+                    vocal_frames = voiced_f0[female_mask]
+                elif male_score >= 1.5 * female_score:
+                    vocal_frames = voiced_f0[male_mask]
+                else:
+                    vocal_frames = voiced_f0[male_mask | female_mask]
+
+                median_f0 = float(np.median(vocal_frames)) if vocal_frames.size > 0 else 0.0
+                # Confidence = how much of the voiced energy is in the
+                # vocal range. If most of it is bass / high, confidence
+                # drops and the matcher will treat the call as Unclear.
+                vocal_confidence = vocal_score / total_score if total_score > 0 else 0.0
+
+    except Exception as e:
+        # PYIN can be slow/unstable on some inputs; fall back to piptrack
+        # so analysis never hard-fails.
+        print(f"PYIN failed, falling back to piptrack: {e}")
+        pitches, magnitudes = librosa.piptrack(
+            y=y_harmonic, sr=sr,
+            fmin=librosa.note_to_hz('C2'),
+            fmax=librosa.note_to_hz('C6')
+        )
+        pitch_indices = np.argmax(magnitudes, axis=0)
+        pitch_vals = []
+        for t in range(magnitudes.shape[1]):
+            index = pitch_indices[t]
+            if magnitudes[index, t] > np.median(magnitudes):
+                pitch_vals.append(pitches[index, t])
+        median_f0 = float(np.median(pitch_vals)) if pitch_vals else 0.0
+        vocal_confidence = 0.0
+
     chroma = librosa.feature.chroma_stft(y=y_harmonic, sr=sr)
     avg_chroma = np.mean(chroma, axis=1)
 
     return {
-        'median_f0': float(median_f0),
+        'median_f0': median_f0,
+        'vocal_confidence': float(vocal_confidence),
         'chroma_vector': avg_chroma.tolist()
     }
 
@@ -185,6 +254,7 @@ def analyze_demo_track(audio_file: str):
             'tempo': tempo,
             'energy': normalized_energy,
             'median_f0': melody_features['median_f0'],
+            'vocal_confidence': melody_features.get('vocal_confidence', 0.0),
             'chroma_vector': melody_features['chroma_vector'],
             'avg_chroma_vector': melody_features['chroma_vector'],
             'rhythm_complexity': rhythm_features['rhythm_complexity'],

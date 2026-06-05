@@ -586,6 +586,8 @@ function LoginCard({ isDark, imgs }: { isDark: boolean; imgs: ThemeImages }) {
 }
 
 export default function HeroSection({ isDark, imgs }: HeroSectionProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
   const textMuted = isDark ? 'text-white/60' : 'text-pp-navy/70'
   const textBold = isDark ? 'text-white' : 'text-pp-navy'
   const headingColor = textBold
@@ -648,10 +650,22 @@ export default function HeroSection({ isDark, imgs }: HeroSectionProps) {
             </p>
 
             <div className="flex flex-col md:flex-row md:justify-center xl:justify-start gap-[14px] md:gap-5 w-full xl:w-auto">
-              <button className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[14px] md:text-[16px] xl:text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[10px] md:rounded-[12px]">
+              <button
+                onClick={() => {
+                  // Switch the right-side auth card to signup via location state
+                  // (LoginCard watches this) and scroll the card into view on
+                  // mobile / tablet where it sits below the hero copy.
+                  navigate(location.pathname, { state: { initialView: 'signup' } })
+                  document.getElementById('pp-auth-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }}
+                className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[14px] md:text-[16px] xl:text-[16px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[10px] md:rounded-[12px]"
+              >
                 Get started free
               </button>
-              <button className={`${secondaryBtnCls} pp-btn-lift-soft font-medium font-poppins text-[14px] md:text-[16px] xl:text-[15px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px]`}>
+              <button
+                onClick={() => navigate('/how-it-works')}
+                className={`${secondaryBtnCls} pp-btn-lift-soft font-medium font-poppins text-[14px] md:text-[16px] xl:text-[15px] flex items-center justify-center px-[30px] py-[14px] xl:py-4 xl:h-[54px] rounded-[12px]`}
+              >
                 See how it works
               </button>
             </div>
@@ -672,7 +686,7 @@ export default function HeroSection({ isDark, imgs }: HeroSectionProps) {
           </div>
 
           {/* Right: Login / Signup / Forgot card */}
-          <div className="xl:ml-auto xl:w-[550px] xl:self-center w-full md:max-w-[556px] md:mx-auto">
+          <div id="pp-auth-card" className="xl:ml-auto xl:w-[550px] xl:self-center w-full md:max-w-[556px] md:mx-auto scroll-mt-[80px]">
             <LoginCard isDark={isDark} imgs={imgs} />
           </div>
         </div>
