@@ -19,6 +19,11 @@ class TrackSummaryResponse(BaseModel):
     matches_count: int = 0
     pitches_count: int = 0
     created_at: datetime
+    # Auto-generated streaming link (set when audio is stored in R2 and not
+    # past expiry). Null when the streaming-link feature is disabled or the
+    # audio has been cleaned up.
+    listening_url: Optional[str] = None
+    listen_count: int = 0
 
 
 class TrackDetailResponse(BaseModel):

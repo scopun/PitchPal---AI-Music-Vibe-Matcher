@@ -13,6 +13,10 @@ export interface TrackSummary {
   matches_count: number
   pitches_count: number
   created_at: string
+  // Streaming-link feature — set when audio is stored in R2 and not expired.
+  listening_url?: string | null
+  // Number of times the public listening page has been opened.
+  listen_count?: number
 }
 
 export interface TrackDetail {

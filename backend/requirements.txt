@@ -19,3 +19,4 @@ bcrypt
 python-jose[cryptography]
 resend
 greenlet
+boto3
