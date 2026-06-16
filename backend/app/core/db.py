@@ -66,3 +66,14 @@ async def init_models() -> None:
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS spotify_url VARCHAR(255)",
         ):
             await conn.execute(text(stmt))
+
+        # Streaming-link / R2 storage columns on tracks.
+        for stmt in (
+            "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS listening_token VARCHAR(32)",
+            "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS r2_object_key VARCHAR(512)",
+            "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS audio_expires_at TIMESTAMPTZ",
+            "ALTER TABLE tracks ADD COLUMN IF NOT EXISTS listen_count INTEGER NOT NULL DEFAULT 0",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_tracks_listening_token ON tracks (listening_token)",
+            "CREATE INDEX IF NOT EXISTS ix_tracks_audio_expires_at ON tracks (audio_expires_at)",
+        ):
+            await conn.execute(text(stmt))

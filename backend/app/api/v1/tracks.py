@@ -1,5 +1,6 @@
 import hashlib
 import os
+import secrets
 import shutil
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -10,6 +11,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import get_current_user
+from app.core.config import settings
 from app.core.db import get_session
 from app.models.track import Track
 from app.models.user import User
@@ -17,6 +19,7 @@ from app.schemas.track import TrackDetailResponse, TrackSummaryResponse
 from app.services.audio_engine import analyze_demo_track
 from app.services.deezer_service import enrich_artist
 from app.services.matcher import find_best_match
+from app.services.r2_service import build_object_key, r2_configured, upload_audio
 from app.services.spotify_service import enrich_artist as enrich_spotify
 from app.services.whisper_engine import extract_lyrics_from_audio
 
@@ -32,14 +35,26 @@ ALLOWED_EXTENSIONS = (".mp3", ".wav", ".m4a", ".flac", ".aac")
 CACHE_TTL_DAYS = 7
 
 
-def _summarize(track: Track) -> TrackSummaryResponse:
+def _listening_url(track: Track) -> str | None:
+    """Build the user-facing listening URL if the track has an active token."""
+    if not track.listening_token:
+        return None
+    # If audio has been cleaned up past expiry, don't surface the URL.
+    if track.audio_expires_at is not None:
+        now = datetime.now(timezone.utc)
+        if track.audio_expires_at < now or not track.r2_object_key:
+            return None
+    base = settings.BACKEND_PUBLIC_URL.rstrip("/")
+    return f"{base}/listen/{track.listening_token}"
+
+
+def _summarize(track: Track, pitches_count: int = 0) -> TrackSummaryResponse:
     matches = []
-    pitches_count = 0
     if isinstance(track.match_data, dict):
         raw_matches = track.match_data.get("matches")
         if isinstance(raw_matches, list):
             matches = raw_matches
-    if track.pitches is not None:
+    if pitches_count == 0 and track.pitches is not None:
         pitches_count = len(track.pitches)
     return TrackSummaryResponse(
         id=track.id,
@@ -53,6 +68,8 @@ def _summarize(track: Track) -> TrackSummaryResponse:
         matches_count=len(matches),
         pitches_count=pitches_count,
         created_at=track.created_at,
+        listening_url=_listening_url(track),
+        listen_count=track.listen_count or 0,
     )
 
 
@@ -108,6 +125,11 @@ async def match_track(
             cached["track_id"] = cached_track.id
             cached["cached"] = True
             cached["cached_at"] = cached_track.created_at.isoformat()
+            # Surface the existing listening URL so the pitch modal can
+            # auto-fill even on cached re-uploads.
+            listening_url = _listening_url(cached_track)
+            if listening_url:
+                cached["listening_url"] = listening_url
             return cached
 
         audio_features = analyze_demo_track(temp_file_path) or {}
@@ -182,6 +204,38 @@ async def match_track(
             results["extracted_features"] = audio_features
             results["lyrics_used"] = lyrics if lyrics else "No lyrics extracted"
 
+        # Streaming-link feature — when R2 is configured, upload the audio
+        # so a tokenised listening URL can be embedded in the pitch modal.
+        # Quietly skipped when R2 isn't configured (local dev) so the rest
+        # of the flow keeps working with the legacy "paste your own link"
+        # behaviour.
+        listening_token: str | None = None
+        r2_object_key: str | None = None
+        audio_expires_at = None
+        if r2_configured():
+            # 16 bytes → 22-char URL-safe token. Long enough to be
+            # unguessable, short enough to look clean in URLs.
+            listening_token = secrets.token_urlsafe(16)
+            r2_object_key = build_object_key(listening_token, audio_file.filename or "track.mp3")
+            audio_expires_at = datetime.now(timezone.utc) + timedelta(days=settings.LISTENING_LINK_TTL_DAYS)
+            # Content-type from filename extension; default to mpeg.
+            ext = (os.path.splitext(audio_file.filename or "")[1] or ".mp3").lower()
+            content_type_map = {
+                ".mp3": "audio/mpeg",
+                ".wav": "audio/wav",
+                ".m4a": "audio/mp4",
+                ".aac": "audio/aac",
+                ".flac": "audio/flac",
+            }
+            content_type = content_type_map.get(ext, "audio/mpeg")
+            uploaded = upload_audio(temp_file_path, r2_object_key, content_type=content_type)
+            if not uploaded:
+                # R2 unreachable / misconfigured — fall back to no-link mode
+                # for this upload rather than failing the whole analysis.
+                listening_token = None
+                r2_object_key = None
+                audio_expires_at = None
+
         # Persist the analysis so the user can revisit it from My Tracks.
         track = Track(
             user_id=current_user.id,
@@ -194,12 +248,18 @@ async def match_track(
             lyrics_extracted=bool(lyrics_extracted),
             genre_tags=results.get("genre_tags") if isinstance(results.get("genre_tags"), list) else None,
             match_data=results,
+            listening_token=listening_token,
+            r2_object_key=r2_object_key,
+            audio_expires_at=audio_expires_at,
         )
         session.add(track)
         await session.commit()
         await session.refresh(track)
 
         results["track_id"] = track.id
+        listening_url = _listening_url(track)
+        if listening_url:
+            results["listening_url"] = listening_url
         return results
 
     except HTTPException:
@@ -251,6 +311,8 @@ async def list_tracks(
                 matches_count=len(matches),
                 pitches_count=pitches_count,
                 created_at=t.created_at,
+                listening_url=_listening_url(t),
+                listen_count=t.listen_count or 0,
             )
         )
     return summaries
@@ -265,7 +327,15 @@ async def get_track(
     track = await session.get(Track, track_id)
     if track is None or track.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found.")
-    return TrackDetailResponse.model_validate(track)
+    # Bake the listening URL into match_data so the frontend's openSavedTrack
+    # path also gets the auto-fill behaviour without a separate field on the
+    # response schema.
+    listening_url = _listening_url(track)
+    if listening_url and isinstance(track.match_data, dict):
+        track.match_data = dict(track.match_data)
+        track.match_data["listening_url"] = listening_url
+    response = TrackDetailResponse.model_validate(track)
+    return response
 
 
 @router.delete("/tracks/{track_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -277,6 +347,12 @@ async def delete_track(
     track = await session.get(Track, track_id)
     if track is None or track.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found.")
+    # Clean up the audio object in R2 too — otherwise deleted tracks would
+    # leave orphan audio that nothing references but still counts against
+    # the 10GB free tier.
+    if track.r2_object_key:
+        from app.services.r2_service import delete_audio
+        delete_audio(track.r2_object_key)
     await session.delete(track)
     await session.commit()
     return None

@@ -32,6 +32,33 @@ class Settings(BaseSettings):
     SPOTIFY_CLIENT_ID: str = os.getenv("SPOTIFY_CLIENT_ID", "")
     SPOTIFY_CLIENT_SECRET: str = os.getenv("SPOTIFY_CLIENT_SECRET", "")
 
+    # Cloudflare R2 — audio storage for the auto-generated streaming-link
+    # feature. When all four R2_* values are set, uploaded audio is stored
+    # in the R2 bucket after analysis and a tokenised listening URL is
+    # auto-included in the pitch modal. When any R2_* value is missing
+    # (e.g. local dev without credentials), the streaming-link feature
+    # silently disables itself and the rest of the app keeps working.
+    R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
+    R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
+    R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID", "")
+    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "pitchpal-tracks")
+    R2_ENDPOINT_URL: str = os.getenv("R2_ENDPOINT_URL", "")
+
+    # Public base URL where the backend itself is reachable. Used to build
+    # the user-facing listening URLs (e.g. https://<backend>/listen/abc123).
+    BACKEND_PUBLIC_URL: str = os.getenv(
+        "BACKEND_PUBLIC_URL",
+        "https://pitchpal-backend-0uyc.onrender.com",
+    )
+
+    # Streaming link policy (Ciara's email decisions):
+    # 30 days expiry, stream-only, listen analytics on.
+    LISTENING_LINK_TTL_DAYS: int = 30
+    # How long the presigned R2 URL embedded in the player page stays valid.
+    # 1 hour is long enough to listen to the track end-to-end even with seeks
+    # and short enough to prevent casual sharing of the raw audio URL.
+    LISTENING_PRESIGNED_URL_TTL_SECONDS: int = 60 * 60
+
     class Config:
         case_sensitive = True
         env_file = ".env"

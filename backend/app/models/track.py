@@ -32,6 +32,28 @@ class Track(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # ── Streaming-link feature (Cloudflare R2) ─────────────────────────────
+    # Random unguessable token that appears in the user-facing listening URL
+    # (e.g. pitchpal.co.uk/listen/<token>). 22-char URL-safe base64 from
+    # secrets.token_urlsafe(16); indexed for O(1) lookup on the listen route.
+    listening_token: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True, unique=True, index=True
+    )
+    # Object key inside the R2 bucket — typically `tracks/<token>/<file>.mp3`.
+    # Null while the track exists but its audio has been cleaned up (e.g.
+    # past the 30-day expiry); the analysis record stays so the user can
+    # still see their match history.
+    r2_object_key: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    # Hard expiry for the audio file in R2. Once this passes a background
+    # sweep deletes the R2 object and nulls out r2_object_key. Listening
+    # URLs return 410 Gone after this point.
+    audio_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    # Listen analytics — incremented once per listening-page load. Lightweight
+    # enough that we can show it directly on My Tracks / Dashboard cards.
+    listen_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
     pitches: Mapped[list["Pitch"]] = relationship(
         "Pitch",
         back_populates="track",

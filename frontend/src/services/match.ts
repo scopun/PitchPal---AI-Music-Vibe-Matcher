@@ -58,6 +58,11 @@ export interface MatchResponse {
   // these to show a subtle "Cached result" indicator on the results page.
   cached?: boolean
   cached_at?: string
+  // Auto-generated PitchPal streaming link — set when the audio is stored
+  // in R2. Embedded in the pitch modal so the user doesn't have to upload
+  // to SoundCloud / Dropbox separately. Null when the streaming-link
+  // feature is disabled (R2 not configured) or audio storage failed.
+  listening_url?: string | null
   // The backend returns a 200 with an `error` field when Claude parsing fails.
   // We surface that as a thrown ApiError below.
   error?: string
