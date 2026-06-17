@@ -14,14 +14,14 @@ import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.db import get_session
 from app.models.track import Track
-from app.services.r2_service import delete_audio, presigned_get_url, r2_configured
+from app.services.r2_service import _get_client, delete_audio, r2_configured
 
 router = APIRouter()
 
@@ -519,7 +519,7 @@ def _listen_page_html(track: Track, audio_url: str) -> str:
 
     <div class="equaliser" id="pp-eq" aria-hidden="true"></div>
 
-    <audio id="pp-audio" preload="metadata" crossorigin="anonymous" src={audio_src}></audio>
+    <audio id="pp-audio" preload="metadata" crossorigin="anonymous" oncontextmenu="return false" controlsList="nodownload noplaybackrate noremoteplayback" src={audio_src}></audio>
 
     <div class="player">
       <button class="play-btn" id="pp-play" type="button" aria-label="Play">
@@ -816,7 +816,13 @@ async def listen_page(
     request: Request,
     session: AsyncSession = Depends(get_session),
 ) -> HTMLResponse:
-    """User-facing listening page — embedded audio player, no download."""
+    """User-facing listening page — embedded audio player, no download.
+
+    Accepts an optional `?preview=1` query parameter. When set, the listen
+    counter is NOT incremented. The "Listen" button on the uploader's My
+    Tracks page uses this so the uploader's own previews don't inflate
+    the analytics count meant for outside artists / A&Rs.
+    """
     track = await _lookup_active_track(token, session)
 
     if not r2_configured():
@@ -825,17 +831,19 @@ async def listen_page(
             detail="Audio storage not configured.",
         )
 
-    audio_url = presigned_get_url(track.r2_object_key)
-    if not audio_url:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Could not generate audio URL.",
-        )
+    # Point the audio element at our own proxy endpoint so the raw R2 URL
+    # is never visible in DevTools. Combined with controlsList="nodownload"
+    # and the disabled context menu, this blocks casual downloads.
+    base = settings.BACKEND_PUBLIC_URL.rstrip("/")
+    audio_url = f"{base}/api/v1/audio/{token}"
 
-    # Listen analytics — one increment per page load. Good-enough proxy for
-    # "track was opened by an A&R / artist" without needing JS pings.
-    track.listen_count = (track.listen_count or 0) + 1
-    await session.commit()
+    # Listen analytics — one increment per page load. Skip when the link
+    # was opened by the uploader themselves (preview mode) so the metric
+    # only reflects external listens.
+    preview = request.query_params.get("preview") == "1"
+    if not preview:
+        track.listen_count = (track.listen_count or 0) + 1
+        await session.commit()
 
     return HTMLResponse(content=_listen_page_html(track, audio_url))
 
@@ -859,21 +867,77 @@ async def listen_info(
 
 
 @router.get("/api/v1/audio/{token}")
-async def audio_redirect(
+async def stream_audio(
     token: str,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ):
     """
-    Alternative entry point — 302 redirects to a short-lived presigned R2 URL.
+    Stream the audio from R2 through the backend so the raw R2 URL is
+    never exposed in the browser's DevTools / Network tab. This makes
+    "Save audio as…" significantly harder — combined with the
+    controlsList="nodownload" attribute and the disabled right-click
+    context menu on the audio element, casual downloads are blocked.
 
-    Useful when something embeds the raw audio (e.g. an HTML <audio src>
-    pointing here) without using the HTML player page. Does NOT increment
-    the listen counter; that's tied to the player page load.
+    HTTP Range requests are forwarded to R2 so seeking still works.
     """
     track = await _lookup_active_track(token, session)
-    if not r2_configured():
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Audio storage not configured.")
-    audio_url = presigned_get_url(track.r2_object_key)
-    if not audio_url:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Could not generate audio URL.")
-    return RedirectResponse(url=audio_url, status_code=status.HTTP_302_FOUND)
+    if not r2_configured() or not track.r2_object_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Audio storage not configured.",
+        )
+
+    client = _get_client()
+    if client is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Audio storage not configured.",
+        )
+
+    get_args: dict = {"Bucket": settings.R2_BUCKET_NAME, "Key": track.r2_object_key}
+    # Forward Range header so the browser's seek bar still works — R2
+    # responds with a 206 Partial Content + Content-Range, which we
+    # propagate to the client.
+    range_header = request.headers.get("range") or request.headers.get("Range")
+    if range_header:
+        get_args["Range"] = range_header
+
+    try:
+        r2_response = client.get_object(**get_args)
+    except Exception:  # noqa: BLE001
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not fetch audio.",
+        )
+
+    body = r2_response["Body"]
+
+    # Headers — keep the response inline (so browsers don't offer a save
+    # dialog), disable caching, and surface Range support so the player
+    # can seek mid-file.
+    headers = {
+        "Content-Type": r2_response.get("ContentType", "audio/mpeg"),
+        "Content-Disposition": 'inline; filename="track.mp3"',
+        "Cache-Control": "no-store, no-cache, must-revalidate, private",
+        "Accept-Ranges": "bytes",
+        "X-Content-Type-Options": "nosniff",
+    }
+    if r2_response.get("ContentLength") is not None:
+        headers["Content-Length"] = str(r2_response["ContentLength"])
+    if r2_response.get("ContentRange"):
+        headers["Content-Range"] = r2_response["ContentRange"]
+
+    status_code = status.HTTP_206_PARTIAL_CONTENT if range_header else status.HTTP_200_OK
+
+    def iter_chunks():
+        try:
+            for chunk in body.iter_chunks(chunk_size=64 * 1024):
+                yield chunk
+        finally:
+            try:
+                body.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+    return StreamingResponse(iter_chunks(), status_code=status_code, headers=headers)

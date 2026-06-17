@@ -163,6 +163,149 @@ body {
     .pp-progress-bar { animation: none; left: 0; width: 100%; opacity: 0.4; }
   }
 
+  /* ============================================================
+     LISTEN PREVIEW PLAYER — used in the My Tracks preview modal.
+     Mirrors the public /listen/<token> page styling so the
+     uploader sees the same rich player without an iframe.
+     ============================================================ */
+  .pp-lp-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 22px;
+    padding: 28px 24px 24px;
+    background: rgba(22,11,51,0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+    transition: box-shadow 500ms ease-out, border-color 500ms ease-out;
+  }
+  .pp-lp-card.playing {
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(129,55,246,0.25), 0 0 120px rgba(0,184,215,0.15);
+    border-color: rgba(129,55,246,0.35);
+  }
+  .pp-lp-orb {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.55;
+    transition: opacity 700ms ease-out, transform 700ms ease-out;
+    will-change: transform, opacity;
+    z-index: 0;
+  }
+  .pp-lp-orb.purple { width: 420px; height: 420px; left: -120px; top: -120px;
+    background: radial-gradient(circle, rgba(144,0,255,0.45) 0%, rgba(144,0,255,0) 65%);
+    animation: pp-lp-orb-1 14s ease-in-out infinite; }
+  .pp-lp-orb.cyan { width: 360px; height: 360px; right: -100px; top: 30%;
+    background: radial-gradient(circle, rgba(0,184,215,0.35) 0%, rgba(0,184,215,0) 65%);
+    animation: pp-lp-orb-2 18s ease-in-out infinite; }
+  .pp-lp-orb.violet { width: 340px; height: 340px; left: 30%; bottom: -120px;
+    background: radial-gradient(circle, rgba(129,55,246,0.40) 0%, rgba(129,55,246,0) 65%);
+    animation: pp-lp-orb-3 16s ease-in-out infinite; }
+  @keyframes pp-lp-orb-1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,30px) scale(1.06); } 66% { transform: translate(-20px,50px) scale(0.96); } }
+  @keyframes pp-lp-orb-2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,40px) scale(1.08); } }
+  @keyframes pp-lp-orb-3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-40px) scale(1.05); } }
+  .pp-lp-card.playing .pp-lp-orb { opacity: 0.95; }
+  .pp-lp-card.playing .pp-lp-orb.purple { animation-duration: 6s; }
+  .pp-lp-card.playing .pp-lp-orb.cyan   { animation-duration: 7s; }
+  .pp-lp-card.playing .pp-lp-orb.violet { animation-duration: 8s; }
+
+  .pp-lp-content { position: relative; z-index: 2; }
+
+  /* Equaliser */
+  .pp-lp-eq {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 100%;
+    height: 50px;
+    margin: 22px 0 16px;
+  }
+  .pp-lp-eq span {
+    display: block;
+    width: 4px;
+    height: 100%;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.16);
+    transform-origin: bottom center;
+    transform: scaleY(1);
+    transition: background 400ms ease-out, transform 500ms ease-out;
+    will-change: transform;
+  }
+  .pp-lp-card.playing .pp-lp-eq span {
+    background: linear-gradient(180deg, #00B8D7 0%, #8137F6 100%);
+    animation: pp-lp-eq-bounce var(--eq-dur, 900ms) ease-in-out infinite;
+    animation-delay: var(--eq-delay, 0s);
+  }
+  .pp-lp-card.web-audio .pp-lp-eq span {
+    animation: none !important;
+    transition: transform 90ms linear, background 400ms ease-out;
+  }
+  @keyframes pp-lp-eq-bounce { 0%,100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+
+  /* Player */
+  .pp-lp-player {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 22px rgba(0,0,0,0.30);
+    transition: border-color 500ms ease-out, box-shadow 500ms ease-out;
+  }
+  .pp-lp-card.playing .pp-lp-player {
+    border-color: rgba(0,184,215,0.40);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 30px rgba(0,0,0,0.40), 0 0 40px rgba(0,184,215,0.18);
+  }
+  .pp-lp-play {
+    position: relative;
+    flex-shrink: 0;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #00B8D7 0%, #8137F6 100%);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 8px 22px rgba(129,55,246,0.45);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  }
+  .pp-lp-play::before {
+    content: ''; position: absolute; inset: -7px; border-radius: 50%;
+    border: 2px solid rgba(0,184,215,0.55); opacity: 0;
+    animation: pp-lp-pulse 2.2s ease-out infinite;
+  }
+  .pp-lp-card.playing .pp-lp-play::before { animation: none; opacity: 0; }
+  @keyframes pp-lp-pulse { 0% { transform: scale(0.85); opacity: 0.6; } 70% { transform: scale(1.15); opacity: 0; } 100% { transform: scale(1.20); opacity: 0; } }
+  .pp-lp-play:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 12px 32px rgba(129,55,246,0.60); }
+  .pp-lp-play svg { width: 20px; height: 20px; }
+
+  .pp-lp-main { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .pp-lp-time { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-family: 'JetBrains Mono', ui-monospace, monospace; letter-spacing: 0.02em; line-height: 1; }
+  .pp-lp-time-current { color: white; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pp-lp-time-total { color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .pp-lp-progress { height: 22px; display: flex; align-items: center; cursor: pointer; position: relative; }
+  .pp-lp-progress-track { width: 100%; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; position: relative; transition: height 200ms ease-out, box-shadow 200ms ease-out; }
+  .pp-lp-progress:hover .pp-lp-progress-track { height: 7px; box-shadow: 0 0 12px rgba(0,184,215,0.25); }
+  .pp-lp-progress-buffered { position: absolute; inset: 0; width: 0%; background: rgba(255,255,255,0.12); border-radius: 999px; transition: width 300ms linear; }
+  .pp-lp-progress-fill { position: absolute; inset: 0; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #00B8D7 0%, #6e6df0 50%, #8137F6 100%); transition: width 100ms linear; box-shadow: 0 0 8px rgba(129,55,246,0.45); }
+  .pp-lp-progress-thumb { position: absolute; top: 50%; width: 13px; height: 13px; border-radius: 50%; background: white;
+    box-shadow: 0 0 0 4px rgba(0,184,215,0.20), 0 0 12px rgba(0,184,215,0.50), 0 2px 6px rgba(0,0,0,0.50);
+    transform: translate(-50%, -50%) scale(0.85); pointer-events: none; opacity: 0; transition: opacity 200ms ease-out, transform 200ms ease-out; }
+  .pp-lp-progress:hover .pp-lp-progress-thumb, .pp-lp-card.playing .pp-lp-progress-thumb { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+  .pp-lp-vol-btn { width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.04); color: white; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 200ms ease-out, border-color 200ms ease-out; }
+  .pp-lp-vol-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
+  .pp-lp-vol-btn svg { width: 16px; height: 16px; }
+  .pp-lp-vol-btn.muted { color: rgba(255,255,255,0.6); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pp-lp-orb, .pp-lp-card.playing .pp-lp-orb, .pp-lp-card.playing .pp-lp-eq span { animation: none !important; }
+  }
+
   /* Site-wide button + card hover affordances. Apply alongside the
      existing styling — they only add transitions and hover/active states.
      Both respect prefers-reduced-motion. */

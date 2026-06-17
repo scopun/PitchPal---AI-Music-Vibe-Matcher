@@ -24,6 +24,10 @@ class TrackSummaryResponse(BaseModel):
     # audio has been cleaned up.
     listening_url: Optional[str] = None
     listen_count: int = 0
+    # When the R2-stored audio expires. Frontend uses this to show
+    # "Available for X more days" in the preview popup and to hide the
+    # Listen button once the file has been swept.
+    audio_expires_at: Optional[datetime] = None
 
 
 class TrackDetailResponse(BaseModel):
