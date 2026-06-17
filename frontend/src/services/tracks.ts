@@ -17,6 +17,9 @@ export interface TrackSummary {
   listening_url?: string | null
   // Number of times the public listening page has been opened.
   listen_count?: number
+  // When the R2-stored audio expires. Frontend uses this for the
+  // "Available for X more days" line in the preview popup.
+  audio_expires_at?: string | null
 }
 
 export interface TrackDetail {

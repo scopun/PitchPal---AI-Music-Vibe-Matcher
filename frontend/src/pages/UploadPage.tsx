@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, Fragment } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ApiError } from '../services/api'
+import { API_BASE_URL, ApiError } from '../services/api'
+import ListenPreviewPlayer from '../components/ListenPreviewPlayer'
 import ConfirmDialog from '../components/ConfirmDialog'
 import {
   matchTrack,
@@ -559,6 +560,35 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const [lastPitch, setLastPitch] = useState<{ artistName: string } | null>(null)
   const lastPitchTimerRef = useRef<number | null>(null)
 
+  // Owner-only listen preview popup. Triggered from the "Listen" button
+  // on a My Tracks card. Renders the full themed player UI inline in
+  // React (no iframe) and hits /api/v1/audio/<token> for the stream —
+  // that endpoint doesn't touch the listen counter, so the uploader's
+  // own previews don't inflate the analytics.
+  const [listenPreview, setListenPreview] = useState<{
+    trackId: number
+    filename: string
+    detected_genre: string | null
+    bpm: number | null
+    audioUrl: string
+    audio_expires_at: string | null
+  } | null>(null)
+
+  const openListenPreview = (t: TrackSummary) => {
+    if (!t.listening_url) return
+    const m = t.listening_url.match(/\/listen\/([^/?#]+)/)
+    const token = m ? m[1] : null
+    if (!token) return
+    setListenPreview({
+      trackId: t.id,
+      filename: t.filename,
+      detected_genre: t.detected_genre,
+      bpm: t.bpm,
+      audioUrl: `${API_BASE_URL}/api/v1/audio/${token}`,
+      audio_expires_at: t.audio_expires_at ?? null,
+    })
+  }
+
   const buildPitchBody = (artist: MatchItem, trackName: string, listeningUrl?: string | null): string => {
     const firstName = (artist.artist || '').split(' ')[0] || 'there'
     const reason = (artist.brief_match || artist.reason || '').trim()
@@ -1047,6 +1077,58 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           setPendingConfirm(null)
         }}
       />
+
+      {/* OWNER-ONLY LISTEN PREVIEW MODAL — opens from the "Listen" button
+          on a My Tracks card. Plays the track via the same R2 audio
+          endpoint, but in a modal popup so the uploader doesn't leave
+          the dashboard. Hits /api/v1/audio/<token> (no counter touch),
+          so previewing your own track won't inflate listen analytics. */}
+      {listenPreview && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setListenPreview(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setListenPreview(null) }}
+          tabIndex={-1}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-[640px] pp-confirm-scale-in"
+          >
+            {/* Close X — sits just above the player so it doesn't overlap
+                the modal content. */}
+            <button
+              onClick={() => setListenPreview(null)}
+              aria-label="Close preview"
+              className="absolute -top-12 right-0 size-10 rounded-full flex items-center justify-center bg-white/[0.08] border border-white/[0.20] text-white hover:bg-white/[0.14] transition-colors"
+              title="Close (Esc)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 19L19 5M5 5L19 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            {/* Full themed player rendered inline in React — same look as
+                the public /listen/<token> page (custom controls, equaliser,
+                background orbs, web-audio visualiser), minus the public
+                page's "What is PitchPal?" footer. Audio is streamed from
+                /api/v1/audio/<token>, which proxies the R2 object and does
+                NOT touch the listen counter. */}
+            <ListenPreviewPlayer
+              audioUrl={listenPreview.audioUrl}
+              filename={listenPreview.filename}
+              trackIdLabel={formatTrackId(listenPreview.trackId)}
+              detectedGenre={listenPreview.detected_genre}
+              bpm={listenPreview.bpm}
+              audioExpiresAt={listenPreview.audio_expires_at}
+            />
+
+            <p className="mt-3 text-[11px] font-poppins text-white/60 text-center">
+              Preview mode — this play won't count toward your listen analytics.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* POST-PITCH SUCCESS TOAST — Ciara's #3: after confirming a pitch,
           give the user obvious paths to upload another track or jump back to
@@ -1701,6 +1783,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
               onOpen={openSavedTrack}
               onDelete={removeTrack}
               onUploadNew={goToUploadAndPick}
+              onListen={openListenPreview}
             />
           ) : activeItem === 'pitches-sent' ? (
             <PitchesSentTab
@@ -3284,6 +3367,7 @@ interface MyTracksTabProps {
   onOpen: (id: number) => void
   onDelete: (id: number) => void
   onUploadNew: () => void
+  onListen: (track: TrackSummary) => void
 }
 
 // Format a track's database id as a user-visible reference Ciara can quote
@@ -3306,7 +3390,7 @@ function formatRelativeDate(iso: string): string {
   return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function MyTracksTab({ isDark, icons, textPrimary, textMuted, tracks, loading, error, onOpen, onDelete, onUploadNew }: MyTracksTabProps) {
+function MyTracksTab({ isDark, icons, textPrimary, textMuted, tracks, loading, error, onOpen, onDelete, onUploadNew, onListen }: MyTracksTabProps) {
   const meta = TAB_META['my-tracks']
   const cardBg = isDark
     ? 'bg-white/[0.03] border border-white/[0.06]'
@@ -3458,6 +3542,19 @@ function MyTracksTab({ isDark, icons, textPrimary, textMuted, tracks, loading, e
 
               {/* Actions */}
               <div className="flex items-center gap-2 shrink-0">
+                {t.listening_url && (
+                  <button
+                    onClick={() => onListen(t)}
+                    className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white/85 hover:bg-white/[0.08]' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy hover:bg-[rgba(129,55,246,0.04)]'} font-medium font-poppins text-[13px] h-[40px] px-3 rounded-[10px] flex items-center gap-2 whitespace-nowrap`}
+                    aria-label="Listen to track"
+                    title="Preview your track in a quick popup (no counter increment)"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7L8 5z" />
+                    </svg>
+                    <span className="hidden md:inline">Listen</span>
+                  </button>
+                )}
                 <button
                   onClick={() => onOpen(t.id)}
                   className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[13px] h-[40px] px-4 rounded-[10px] whitespace-nowrap"

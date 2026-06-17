@@ -222,3 +222,6 @@ temp_interactive_push.bat
 # Local backups / archives — never commit
 frontend_backup/
 frontend/dist/
+
+# Editor / local tooling — never commit (client-facing repo)
+.claude/

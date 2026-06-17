@@ -70,6 +70,7 @@ def _summarize(track: Track, pitches_count: int = 0) -> TrackSummaryResponse:
         created_at=track.created_at,
         listening_url=_listening_url(track),
         listen_count=track.listen_count or 0,
+        audio_expires_at=track.audio_expires_at,
     )
 
 
@@ -313,6 +314,7 @@ async def list_tracks(
                 created_at=t.created_at,
                 listening_url=_listening_url(t),
                 listen_count=t.listen_count or 0,
+                audio_expires_at=t.audio_expires_at,
             )
         )
     return summaries
