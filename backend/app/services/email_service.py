@@ -100,8 +100,8 @@ def _render_branded_email(
               <td style="padding:32px 40px 0 40px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    <td style="border-radius:12px;background:{b['purple_end']};background-image:linear-gradient(90deg,{b['purple_start']} 0%,{b['purple_end']} 100%);">
-                      <a href="{button_url}" target="_blank" style="display:inline-block;padding:14px 32px;color:{b['text']};text-decoration:none;font-family:{b['font']};font-size:15px;font-weight:600;letter-spacing:0.2px;border-radius:12px;">{button_label}</a>
+                    <td bgcolor="{b['purple_end']}" style="border-radius:12px;background:{b['purple_end']};background-image:linear-gradient(90deg,{b['purple_start']} 0%,{b['purple_end']} 100%);">
+                      <a href="{button_url}" target="_blank" style="display:inline-block;padding:14px 32px;background:{b['purple_end']};background-image:linear-gradient(90deg,{b['purple_start']} 0%,{b['purple_end']} 100%);color:{b['text']};text-decoration:none;font-family:{b['font']};font-size:15px;font-weight:600;letter-spacing:0.2px;border-radius:12px;">{button_label}</a>
                     </td>
                   </tr>
                 </table>

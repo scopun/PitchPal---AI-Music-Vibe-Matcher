@@ -96,6 +96,17 @@ export async function apiRequest<T = unknown>(path: string, opts: RequestOptions
   const payload: unknown = isJson ? await response.json().catch(() => null) : null
 
   if (!response.ok) {
+    // An authenticated request coming back 401 means the token is missing,
+    // expired, or invalid — e.g. a stale session after a backend/database
+    // change, or a token for a user that no longer exists. Clear it and let
+    // the app bounce the user to a fresh login. Login/signup/forgot/reset all
+    // run with auth:false, so a wrong-password 401 there never triggers this.
+    if (response.status === 401 && auth) {
+      setStoredToken(null)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pitchpal:auth-expired'))
+      }
+    }
     const fallback = response.status === 401
       ? 'Not authorized.'
       : response.status >= 500

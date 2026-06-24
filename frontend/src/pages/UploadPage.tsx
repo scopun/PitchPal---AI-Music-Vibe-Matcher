@@ -259,7 +259,19 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   // Desktop-only topbar popover: 'messages' | 'notifications' | 'profile' | null
   const [openPopover, setOpenPopover] = useState<'messages' | 'notifications' | 'profile' | null>(null)
-  const { triggerSignOut, user } = useAuth()
+  const { triggerSignOut, user, initializing, token } = useAuth()
+
+  // Protected page guard: once auth has finished initialising, the absence of a
+  // token means there's no valid session — none was stored, or it was cleared
+  // after a 401 (stale/expired). Bounce to the public home page so we never
+  // render the dashboard shell with a blank "User", and so a fresh device is
+  // always asked to log in. We key off the token (not `user`) so a transient
+  // /me network blip on a still-valid token doesn't wrongly eject the user.
+  useEffect(() => {
+    if (!initializing && !token) {
+      navigate('/', { replace: true })
+    }
+  }, [initializing, token, navigate])
 
   // Prefer the user's saved display_name. Fall back to a name derived
   // from the email's local part (splits on dots / underscores / hyphens,
