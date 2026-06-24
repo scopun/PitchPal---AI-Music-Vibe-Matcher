@@ -69,7 +69,10 @@ export interface MatchResponse {
 }
 
 export const ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'aac', 'm4a'] as const
-export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024 // 50MB
+// WAV is uncompressed (~10 MB/min at CD quality, ~16-33 MB/min for studio
+// 24-bit/48-96 kHz), so a full studio track easily passes 50MB. Keep generous
+// headroom so artists can upload WAVs without converting first.
+export const MAX_UPLOAD_BYTES = 200 * 1024 * 1024 // 200MB
 
 export function getFileExtension(file: File): string {
   return file.name.split('.').pop()?.toLowerCase() ?? ''
@@ -89,12 +92,14 @@ export function validateAudioFile(file: File): string | null {
   return null
 }
 
-// Backend chain (librosa → AssemblyAI → Claude → Deezer + Spotify enrichment)
-// can take 60-150s on a cold Render instance, especially when Spotify is
-// rate-limiting and individual artist lookups hit the 10s per-call ceiling.
-// Cap generously at 4 minutes so genuinely-slow runs still surface results
-// instead of bouncing the user back to an error screen.
-const REQUEST_TIMEOUT_MS = 240_000
+// This timeout covers BOTH the upload AND the backend chain (librosa →
+// AssemblyAI → Claude → Deezer + Spotify enrichment). The analysis alone can
+// take 60-150s on a cold Render instance; on top of that a large WAV (up to
+// MAX_UPLOAD_BYTES / 200MB) can take a few minutes to upload on a slower
+// connection — e.g. 200MB at ~5 Mbps is ~5 min just to upload. Cap generously
+// at 8 minutes so big WAVs + slow runs still surface results instead of
+// bouncing the user to an error screen.
+const REQUEST_TIMEOUT_MS = 480_000
 
 export async function matchTrack(file: File, externalSignal?: AbortSignal): Promise<MatchResponse> {
   const form = new FormData()

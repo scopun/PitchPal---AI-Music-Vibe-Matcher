@@ -51,6 +51,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // A 401 from any authenticated request (raised in apiRequest) means the
+  // stored token is no longer valid — it expired, or it points at a user that
+  // no longer exists after a backend/database change. Clear the session so
+  // protected pages (which guard on `user`) bounce to the login/home page
+  // instead of leaving the user stuck on a "Not authenticated" error.
+  useEffect(() => {
+    const onAuthExpired = () => {
+      setStoredToken(null)
+      setToken(null)
+      setUser(null)
+    }
+    window.addEventListener('pitchpal:auth-expired', onAuthExpired)
+    return () => window.removeEventListener('pitchpal:auth-expired', onAuthExpired)
+  }, [])
+
   const signIn = useCallback((nextToken: string, nextUser: UserResponse) => {
     setStoredToken(nextToken)
     setToken(nextToken)
