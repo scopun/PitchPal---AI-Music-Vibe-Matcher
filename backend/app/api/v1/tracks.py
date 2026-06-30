@@ -78,6 +78,7 @@ def _summarize(track: Track, pitches_count: int = 0) -> TrackSummaryResponse:
 async def match_track(
     audio_file: UploadFile = File(...),
     debug: bool = Form(False),
+    vibe_hint: str = Form(""),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
@@ -120,7 +121,16 @@ async def match_track(
             .order_by(desc(Track.created_at))
             .limit(1)
         )
+        # A vibe/genre hint changes the match outcome, so only reuse a cached
+        # result when the hint matches what produced it (treats "no hint" as a
+        # distinct case too). This stops a stale audio-only result from being
+        # served when the artist now supplies a direction.
         cached_track = (await session.execute(cached_q)).scalar_one_or_none()
+        hint_norm = (vibe_hint or "").strip()
+        if cached_track and isinstance(cached_track.match_data, dict):
+            cached_hint = (cached_track.match_data.get("vibe_hint") or "").strip()
+            if cached_hint != hint_norm:
+                cached_track = None
         if cached_track and isinstance(cached_track.match_data, dict):
             cached = dict(cached_track.match_data)
             cached["track_id"] = cached_track.id
@@ -145,7 +155,7 @@ async def match_track(
         lyrics_extracted = whisper_result.get("extraction_success", False)
         detected_language = whisper_result.get("detected_language", "en")
 
-        results = await find_best_match(audio_features, lyrics, detected_language)
+        results = await find_best_match(audio_features, lyrics, detected_language, vibe_hint)
 
         if not isinstance(results, dict):
             results = {"matches": results}

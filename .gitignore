@@ -225,3 +225,6 @@ frontend/dist/
 
 # Editor / local tooling — never commit (client-facing repo)
 .claude/
+
+# Client audio downloaded from R2 for local testing — never commit
+backend/downloaded_songs/
