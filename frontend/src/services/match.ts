@@ -101,10 +101,20 @@ export function validateAudioFile(file: File): string | null {
 // bouncing the user to an error screen.
 const REQUEST_TIMEOUT_MS = 480_000
 
-export async function matchTrack(file: File, externalSignal?: AbortSignal): Promise<MatchResponse> {
+export async function matchTrack(
+  file: File,
+  externalSignal?: AbortSignal,
+  vibeHint?: string,
+): Promise<MatchResponse> {
   const form = new FormData()
   form.append('audio_file', file)
   form.append('debug', 'false')
+  // Optional artist-provided direction (intended genre / reference artists).
+  // When supplied it overrides the noisy audio-only genre detection, which is
+  // what gets the match to the artist's actual intent.
+  if (vibeHint && vibeHint.trim()) {
+    form.append('vibe_hint', vibeHint.trim())
+  }
 
   // Compose user-supplied signal + our timeout signal.
   const controller = new AbortController()

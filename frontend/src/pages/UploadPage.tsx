@@ -759,6 +759,11 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   })()
   const [matchError, setMatchError] = useState<string | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
+  // Optional artist-provided direction (intended genre / reference artists).
+  // A rough demo often doesn't yet sound like its intended final genre, so this
+  // hint lets the matcher target the artist's actual intent instead of guessing
+  // from the audio alone. Read at submit time and passed to matchTrack.
+  const [vibeHint, setVibeHint] = useState('')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const completeTimerRef = useRef<number | null>(null)
@@ -838,7 +843,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     abortRef.current = controller
 
     try {
-      const result = await matchTrack(file, controller.signal)
+      const result = await matchTrack(file, controller.signal, vibeHint)
       if (controller.signal.aborted) return
       setMatchResult(result)
       setAnalysingStep(4)
@@ -2146,6 +2151,29 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                   </p>
                 </div>
               )}
+
+              {/* Optional vibe / genre / reference hint. Filled BEFORE picking
+                  a file — a rough demo often doesn't sound like its intended
+                  final genre, so this steers the match to the real intent. */}
+              <div className="flex flex-col gap-[8px] -mb-2">
+                <label
+                  htmlFor="vibe-hint"
+                  className={`text-[13px] md:text-[14px] font-medium font-poppins ${textPrimary}`}
+                >
+                  Target vibe / genre <span className={`font-normal ${textMuted}`}>(optional — boosts accuracy)</span>
+                </label>
+                <input
+                  id="vibe-hint"
+                  type="text"
+                  value={vibeHint}
+                  onChange={(e) => setVibeHint(e.target.value)}
+                  placeholder="e.g. tech house, or “theatrical alt-pop like Raye / Marina”"
+                  className={`${searchInputCls} w-full rounded-[10px] px-[16px] py-[13px] text-[14px] font-poppins outline-none focus:border-pp-purple/50 transition-colors`}
+                />
+                <p className={`text-[12px] font-light leading-[1.5] font-poppins ${textMuted}`}>
+                  Tell us the intended genre and a couple of reference artists. Leave blank to let the AI detect it from the audio.
+                </p>
+              </div>
 
               {/* Upload dashed box — drop zone */}
               <div
