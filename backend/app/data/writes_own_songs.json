@@ -1,0 +1,6 @@
+{
+  "_comment": "Artists who predominantly write their own material and are unlikely to take an outside song. They may still surface as a strong sonic match, so we FLAG them (writes_own=true) rather than removing them — the frontend shows a 'Writes own material' badge so the user knows a pitch is unlikely to land. Add names here as Ciara confirms them (matched case-insensitively).",
+  "writes_own": [
+    "London Grammar"
+  ]
+}

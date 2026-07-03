@@ -18,6 +18,10 @@ export interface MatchItem {
   reason?: string
   genre_fit?: string
   brief_match?: string
+  // True when the artist predominantly writes their own material and is
+  // unlikely to take an outside song (e.g. London Grammar). Still shown as a
+  // sonic match, but the card surfaces a "Writes own material" badge.
+  writes_own?: boolean
   // Optional Spotify enrichment — populated when SPOTIFY_CLIENT_ID is set.
   artist_image?: string | null
   followers?: number | null
