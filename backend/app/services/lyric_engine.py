@@ -28,6 +28,25 @@ def get_who_looking():
     return _WHO_LOOKING
 
 
+_WRITES_OWN = None
+
+
+def get_writes_own() -> set[str]:
+    """Normalized names of artists who write their own material and are
+    unlikely to take an outside song. Cached after first load."""
+    global _WRITES_OWN
+    if _WRITES_OWN is None:
+        try:
+            path = os.path.join(os.path.dirname(__file__), '..', 'data', 'writes_own_songs.json')
+            with open(path, 'r') as f:
+                data = json.load(f)
+            _WRITES_OWN = {_normalize_name(n) for n in data.get("writes_own", [])}
+        except Exception as e:
+            print(f"Warning: Could not load writes_own_songs.json: {e}")
+            _WRITES_OWN = set()
+    return _WRITES_OWN
+
+
 def is_lyrics_meaningful(lyrics: str) -> bool:
     if not lyrics or len(lyrics.strip()) < 20:
         return False
@@ -388,6 +407,7 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected
 
         # ── Code-level filters (defense in depth — never trust prompt only)─
         blocked_norm = {_normalize_name(n) for n in (not_available + deceased)}
+        writes_own_norm = get_writes_own()
         clean_matches = []
         for m in matches:
             if not isinstance(m, dict):
@@ -403,6 +423,11 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected
                 m["confidence_level"] = "Good Match"
             else:
                 m["confidence_level"] = "Worth Considering"
+            # Flag artists who write their own material — still shown (strong
+            # sonic match) but marked so the user knows a pitch is unlikely to
+            # land (Ciara: e.g. London Grammar).
+            if _normalize_name(m.get("artist", "")) in writes_own_norm:
+                m["writes_own"] = True
             clean_matches.append(m)
 
         clean_matches.sort(key=lambda m: m.get("final_score", 0), reverse=True)

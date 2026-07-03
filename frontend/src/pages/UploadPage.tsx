@@ -520,13 +520,12 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
   }
 
   // Used by the secondary "Upload new" / "Upload another track" / "New match"
-  // buttons across My Tracks, Songs Pitched, and the Results view. Resets
-  // state, switches to My Matches, AND opens the file picker — matching the
-  // behaviour of the primary sidebar / topbar / dashboard upload buttons so
-  // every "upload" entry point feels the same to the user.
+  // buttons across My Tracks, Songs Pitched, and the Results view. Takes the
+  // user to the upload (My Matches) drop view but does NOT open the file
+  // picker — so they can fill in the optional "Target vibe / genre" field
+  // first. File selection happens only when they click the drop zone itself.
   const goToUploadAndPick = () => {
     goToMatchesForUpload()
-    triggerFilePicker()
   }
 
   // Direct click on the "My Matches" sidebar / nav / dashboard link should
@@ -846,6 +845,9 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
       const result = await matchTrack(file, controller.signal, vibeHint)
       if (controller.signal.aborted) return
       setMatchResult(result)
+      // Clear the hint so the next track lookup starts with an empty field
+      // (Ciara: the description shouldn't carry over to the next track).
+      setVibeHint('')
       setAnalysingStep(4)
       // Optimistically insert the new/cached track into the My Tracks list
       // so the "track still exists?" guard further down doesn't race with
@@ -1012,7 +1014,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
           the sidebar opens up to 232px and the full label fits comfortably. */}
       <div className="px-2 xl:px-3 pt-4 pb-2">
         <button
-          onClick={() => { goToMatchesForUpload(); triggerFilePicker() }}
+          onClick={() => { goToMatchesForUpload() }}
           title="Upload new track"
           aria-label="Upload new track"
           className="gradient-btn w-full border border-white/[0.06] text-white font-medium font-poppins text-[14px] px-0 xl:px-4 h-[48px] rounded-[10px] flex items-center justify-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] active:translate-y-0 transition-all duration-200 ease-out"
@@ -1368,7 +1370,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
             <img src={icons.logo} alt="PitchPal" className="h-9 w-[124px] object-contain object-left shrink-0" />
             <div className="flex-1" />
             <button
-              onClick={() => { triggerFilePicker(); setDrawerOpen(false) }}
+              onClick={() => { goToMatchesForUpload(); setDrawerOpen(false) }}
               className="gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[13px] px-4 h-[40px] rounded-[10px] flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
             >
               <img src={icons.uploadSmall} alt="" className="size-[16px] object-contain" />
@@ -1564,7 +1566,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
 
           {/* Upload button — opens file picker after navigating to My Matches */}
           <button
-            onClick={() => { goToMatchesForUpload(); triggerFilePicker() }}
+            onClick={() => { goToMatchesForUpload() }}
             className="gradient-btn border border-white/[0.06] text-white font-medium font-poppins text-[13px] md:text-[14px] px-4 md:px-5 h-[40px] md:h-[44px] rounded-[10px] flex items-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(129,55,246,0.45)] active:translate-y-0 transition-all duration-200 ease-out shrink-0"
           >
             <img src={icons.uploadSmall} alt="" className="size-[16px] md:size-[18px] object-contain" />
@@ -1868,7 +1870,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                 {/* CTA row — upload prominent full-width, view matches secondary */}
                 <div className="flex gap-3 relative">
                   <button
-                    onClick={() => { goToMatchesForUpload(); triggerFilePicker() }}
+                    onClick={() => { goToMatchesForUpload() }}
                     className="gradient-btn flex-1 border border-white/[0.06] text-white font-semibold font-poppins text-[15px] h-[52px] rounded-[12px] flex items-center justify-center gap-2 hover:-translate-y-[1px] hover:shadow-[0_12px_28px_rgba(129,55,246,0.50)] transition-all"
                   >
                     <img src={icons.uploadSmall} alt="" className="size-[18px] object-contain" />
@@ -2434,6 +2436,7 @@ interface MatchData {
   ringColor: 'cyan' | 'purple'
   confidence: string
   source: string
+  writesOwn?: boolean
   raw: MatchItem
 }
 
@@ -2488,6 +2491,7 @@ function buildMatchData(matches: MatchItem[], icons: { resAvatar1?: string; resA
       ringColor: idx % 2 === 0 ? 'cyan' : 'purple',
       confidence: m.confidence_level || (score >= 92 ? 'Strong Match' : score >= 85 ? 'Good Match' : 'Worth Considering'),
       source: m.source || 'Industry Match',
+      writesOwn: m.writes_own === true,
       raw: m,
     }
   })
@@ -2984,6 +2988,14 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
                   <p className={`text-[12px] font-normal font-poppins ${textMuted}`}>
                     {m.genre} <span className="mx-1">•</span> {m.location}
                   </p>
+                  {m.writesOwn && (
+                    <span
+                      className="self-start mt-[6px] inline-flex items-center gap-1 bg-[rgba(245,158,11,0.10)] border border-[#F59E0B]/60 text-[#F59E0B] px-2 py-[2px] rounded-full text-[10.5px] font-medium font-poppins"
+                      title="This artist predominantly writes their own material and is unlikely to take an outside song."
+                    >
+                      ✎ Writes own material
+                    </span>
+                  )}
                 </div>
               </div>
               <CircularProgress value={m.match} color={m.ringColor} isDark={isDark} />
@@ -3019,9 +3031,15 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
               </div>
               <div className="flex flex-col gap-[6px]">
                 <p className={`text-[11px] font-normal font-poppins ${textMuted}`}>Status</p>
-                <span className="self-start bg-[rgba(0,187,123,0.10)] border border-[#00BB7B] text-[#00BB7B] px-2 py-[2px] rounded-full text-[11px] font-medium font-poppins">
-                  Active
-                </span>
+                {m.writesOwn ? (
+                  <span className="self-start bg-[rgba(245,158,11,0.10)] border border-[#F59E0B] text-[#F59E0B] px-2 py-[2px] rounded-full text-[11px] font-medium font-poppins">
+                    Writes own
+                  </span>
+                ) : (
+                  <span className="self-start bg-[rgba(0,187,123,0.10)] border border-[#00BB7B] text-[#00BB7B] px-2 py-[2px] rounded-full text-[11px] font-medium font-poppins">
+                    Active
+                  </span>
+                )}
               </div>
             </div>
 
