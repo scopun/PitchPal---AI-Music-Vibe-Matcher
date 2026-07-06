@@ -10,7 +10,9 @@ anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 # Matching brain model. Accuracy is the whole product, so we use the most
 # capable model available. Both stages (genre detection + matching) use it.
-MODEL = "claude-opus-4-8"
+# claude-fable-5 responds with a thinking block before the text block, so
+# _call_model must pick the text block by type — never content[0].
+MODEL = "claude-fable-5"
 
 _WHO_LOOKING = None
 
@@ -183,7 +185,11 @@ def _call_model(system_prompt: str, user_message: str, max_tokens: int = 2000) -
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
     )
-    raw_text = response.content[0].text.strip()
+    # Fable 5 puts a thinking block before the text block; older models return
+    # text first. Join all text blocks by type instead of assuming content[0].
+    raw_text = "".join(
+        b.text for b in response.content if getattr(b, "type", "") == "text"
+    ).strip()
     json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
     if not json_match:
         raise ValueError(f"No JSON in model response: {raw_text[:300]}")
@@ -247,7 +253,9 @@ Return ONLY valid JSON:
             f"genre / reference artists for the FINAL record):\n{vibe_hint.strip()}\n\n"
         )
     user_message = f"{hint_block}Detected language: {detected_language}\n\n{song_data}\n\nIdentify the song. Return ONLY the JSON."
-    return _call_model(system_prompt, user_message, max_tokens=1200)
+    # max_tokens covers the model's internal thinking AND the JSON output on
+    # Fable 5, so this is deliberately much larger than the JSON itself.
+    return _call_model(system_prompt, user_message, max_tokens=6000)
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -325,7 +333,8 @@ Return ONLY valid JSON:
         f"SONG SONIC PROFILE (authoritative):\n{profile_str}\n\n"
         "Find the best artist matches. Return ONLY the JSON."
     )
-    return _call_model(system_prompt, user_message, max_tokens=3000)
+    # Large cap: on Fable 5 max_tokens covers thinking + the full matches JSON.
+    return _call_model(system_prompt, user_message, max_tokens=10000)
 
 
 # ─────────────────────────────────────────────────────────────────────────
