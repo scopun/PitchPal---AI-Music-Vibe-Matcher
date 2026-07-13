@@ -227,9 +227,17 @@ How to read the inputs:
 Name the genre as specifically as a music journalist would. Examples of the
 precision expected: "country-pop", "neo-soul / contemporary R&B", "nu-disco /
 funky house", "melodic / progressive house", "theatrical alt-pop", "glam-rock
-pop", "emotional piano ballad (Lewis Capaldi lane)", "drum & bass", "jazz-pop".
+pop", "emotional piano ballad (Lewis Capaldi lane)", "drum & bass", "jazz-pop",
+"witty diaristic bedroom-pop", "hyperpop / electro-pop", "male contemporary
+R&B / trap-soul", "male radio pop (Shawn Mendes lane)".
 Do NOT default to a generic "pop" or "singer-songwriter" label unless the song
 genuinely is that.
+
+The vocal field matters as much as the genre — matches must be singable by the
+matched artist. Use the audio's vocal reading, but when the artist-provided
+direction names reference artists, let them inform the vocal call too (a "Trey
+Songz vibe" implies a male R&B vocal; a "Charli XCX" reference implies a female
+vocal) unless the audio clearly contradicts it.
 
 Return ONLY valid JSON:
 {
@@ -295,20 +303,39 @@ MATCHING RULES — follow exactly:
 2. NOT-list enforcement: for each WHO'S LOOKING artist, read their NOT field.
    If the song's genre/tags/descriptors hit ANY phrase in their NOT list, that
    artist scores below 0.78 and is excluded. Apply this BEFORE scoring.
-3. Vocal register: if the song's vocal is clearly male, matches must be mostly
-   artists who perform in a male register (the artist has to be able to sing
-   this melody), and likewise for female. "Unclear" → no vocal constraint.
-   This is a strong preference, not a reason to override genre.
-4. Scoring (be conservative, default lower when unsure):
+3. VOCAL REGISTER — HARD RULE: the profile's vocal field tells you the lead
+   vocal. If it is male, every vocal-artist match MUST perform in a male
+   register (the artist has to sing this melody themselves); if female,
+   female-register artists only. A male-vocal R&B song matched to a list of
+   female artists is a FAILURE STATE — rebuild the list. Exemptions: pure
+   producer/DJ acts (house, EDM, D&B) who cut vocals with featured singers,
+   and mixed-vocal bands. "Unclear" vocal → no register constraint.
+4. SOURCE BALANCE — the pool must EARN its place: prefer a WHO'S LOOKING
+   artist only when they genuinely fit the song's lane AND vocal register.
+   The pool is UK-heavy and full of female pop/dance acts — when the song's
+   real world is elsewhere (e.g. male US-style R&B/pop, bedroom-pop,
+   hyperpop), return genuine Industry Matches from that world instead. Do
+   NOT pad the list with adjacent-but-off-lane pool artists; a right-lane
+   Industry Match always outranks a wrong-lane or wrong-register pool artist.
+5. SONIC WORLD PRECISION: match the SPECIFIC lane — the world of the song's
+   reference_artists — not just the broad genre label. Quirky diaristic
+   bedroom-pop belongs with bedroom-pop/indie artists, not generic pop or
+   emotional ballad singers. Hyperpop/electro-pop belongs with hyperpop and
+   crossover alt-pop stars, not dark Euro-pop, not UK bass/D&B. Male R&B
+   belongs with male R&B / pop-R&B singers. A DJ/EDM producer is NOT a match
+   for a vocal-artist pop song merely because the production is danceable.
+   When two candidates share a genre tag, pick the one whose actual records
+   sound closest to THIS song.
+6. Scoring (be conservative, default lower when unsure):
    - 0.92+  Strong Match  (genre, mood, production, vocal all align)
    - 0.85-0.91  Good Match  (clear genre + sonic alignment)
    - 0.78-0.84  Worth Considering (adjacent, may suit with adjustment)
    - below 0.78  EXCLUDE — do not return
-5. Return the 5-8 best matches, highest score first. Never force weak matches —
+7. Return the 5-8 best matches, highest score first. Never force weak matches —
    if only 2-3 genuinely fit at 0.85+, return only those. It is better to
    return 3 right artists than 8 with 5 wrong ones.
-6. NEVER suggest these (not available): {not_available_str}
-7. NEVER suggest these (deceased): {deceased_str}{lang_rule}
+8. NEVER suggest these (not available): {not_available_str}
+9. NEVER suggest these (deceased): {deceased_str}{lang_rule}
 
 Return ONLY valid JSON:
 {{
