@@ -234,10 +234,13 @@ Do NOT default to a generic "pop" or "singer-songwriter" label unless the song
 genuinely is that.
 
 The vocal field matters as much as the genre — matches must be singable by the
-matched artist. Use the audio's vocal reading, but when the artist-provided
-direction names reference artists, let them inform the vocal call too (a "Trey
-Songz vibe" implies a male R&B vocal; a "Charli XCX" reference implies a female
-vocal) unless the audio clearly contradicts it.
+matched artist. When the artist-provided direction names reference artists who
+all share one vocal register, USE THAT REGISTER — it outranks the audio reading
+(a "Trey Songz vibe" implies a male R&B vocal; "like Olivia Dean, Jorja Smith"
+implies a female vocal). The audio classifier is crude: it often misreads low
+female voices as male and high male voices as female, so named references are
+the more reliable signal. Fall back to the audio's vocal reading only when the
+direction names no vocal reference artists or mixes registers.
 
 Return ONLY valid JSON:
 {
