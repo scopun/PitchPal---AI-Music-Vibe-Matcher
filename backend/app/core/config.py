@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
         env_file = ".env"
-        # 👇 THIS LINE FIXES YOUR ERROR
+        # Ignore any unknown environment variables instead of raising.
         extra = "ignore"
 
 settings = Settings()

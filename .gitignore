@@ -228,3 +228,11 @@ frontend/dist/
 
 # Client audio downloaded from R2 for local testing — never commit
 backend/downloaded_songs/
+
+# Local dev/test helpers and notes — not part of the deployed app
+backend/dev_test_match.py
+backend/dev_test_one.py
+backend/dev_download_r2.py
+backend/dev_list_user_tracks.py
+backend/dev_clear_tracks_pitches.py
+PROJECT_OVERVIEW.md
