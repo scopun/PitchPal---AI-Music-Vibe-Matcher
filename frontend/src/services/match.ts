@@ -62,6 +62,10 @@ export interface MatchResponse {
   // these to show a subtle "Cached result" indicator on the results page.
   cached?: boolean
   cached_at?: string
+  // Set by the backend /rematch endpoint when this result came from a
+  // "Refine results" re-run (a new direction / different names) rather than a
+  // fresh upload. Used to swap the "Cached" badge for a "Refined" one.
+  refined?: boolean
   // Auto-generated PitchPal streaming link — set when the audio is stored
   // in R2. Embedded in the pitch modal so the user doesn't have to upload
   // to SoundCloud / Dropbox separately. Null when the streaming-link
@@ -148,6 +152,52 @@ export async function matchTrack(
       // Distinguish "user cancelled" from "client-side timeout".
       if (externalSignal?.aborted) throw err
       throw new ApiError('Analysis took longer than expected. Please try again.', 408)
+    }
+    throw err
+  } finally {
+    window.clearTimeout(timeoutId)
+    externalSignal?.removeEventListener('abort', onExternalAbort)
+  }
+}
+
+// Re-run the matcher on an already-analysed track with a new refinement line,
+// WITHOUT re-uploading the audio. This is Ciara's #1 ask: after seeing results,
+// add a line like "female artist, slightly country" (or ask for different
+// names) and get a fresh match in ~30-60s instead of redoing the whole upload.
+// The backend reuses the stored audio features + lyrics, so only the two Claude
+// matching calls run again.
+export async function rematchTrack(
+  trackId: number,
+  refineHint: string,
+  excludeShown: boolean,
+  externalSignal?: AbortSignal,
+): Promise<MatchResponse> {
+  const form = new FormData()
+  form.append('refine_hint', refineHint.trim())
+  form.append('exclude_shown', excludeShown ? 'true' : 'false')
+
+  const controller = new AbortController()
+  const onExternalAbort = () => controller.abort()
+  externalSignal?.addEventListener('abort', onExternalAbort)
+  // Re-match skips upload + librosa + AssemblyAI, but still runs two Fable
+  // calls + enrichment, so keep a generous cap for a cold Render instance.
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  try {
+    const result = await apiRequest<MatchResponse>(`/api/v1/tracks/${trackId}/rematch`, {
+      method: 'POST',
+      body: form,
+      auth: true,
+      signal: controller.signal,
+    })
+    if (result?.error) {
+      throw new ApiError(result.error, 500)
+    }
+    return result
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      if (externalSignal?.aborted) throw err
+      throw new ApiError('Re-match took longer than expected. Please try again.', 408)
     }
     throw err
   } finally {

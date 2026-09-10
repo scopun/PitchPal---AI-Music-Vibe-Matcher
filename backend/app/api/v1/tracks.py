@@ -74,6 +74,42 @@ def _summarize(track: Track, pitches_count: int = 0) -> TrackSummaryResponse:
     )
 
 
+def _enrich_matches(results: dict[str, Any]) -> None:
+    """Enrich each match in-place with Deezer (image, followers, albums) and
+    the verified Spotify profile URL + monthly listeners. Quietly no-ops on any
+    artist that can't be enriched so the rest of the flow keeps working. Shared
+    by /match and the /rematch re-run so both return the same enriched shape."""
+    raw_matches = results.get("matches")
+    if not isinstance(raw_matches, list):
+        return
+    for m in raw_matches:
+        if not isinstance(m, dict):
+            continue
+        artist_name = m.get("artist")
+        if not artist_name:
+            continue
+        enrichment = enrich_artist(artist_name)
+        if enrichment:
+            if enrichment.get("artist_image"):
+                m["artist_image"] = enrichment["artist_image"]
+            if enrichment.get("followers") is not None:
+                m["followers"] = enrichment["followers"]
+            if enrichment.get("albums_count") is not None:
+                m["albums_count"] = enrichment["albums_count"]
+            if enrichment.get("deezer_id"):
+                m["deezer_id"] = enrichment["deezer_id"]
+
+        # Hybrid: verified Spotify profile URL + monthly listeners for the
+        # "View Profile" button and the recognisable streaming stat.
+        spotify_enrichment = enrich_spotify(artist_name)
+        if spotify_enrichment.get("spotify_url"):
+            m["spotify_url"] = spotify_enrichment["spotify_url"]
+        if spotify_enrichment.get("spotify_id"):
+            m["spotify_id"] = spotify_enrichment["spotify_id"]
+        if spotify_enrichment.get("monthly_listeners") is not None:
+            m["monthly_listeners"] = spotify_enrichment["monthly_listeners"]
+
+
 @router.post("/match")
 async def match_track(
     audio_file: UploadFile = File(...),
@@ -160,45 +196,18 @@ async def match_track(
         if not isinstance(results, dict):
             results = {"matches": results}
 
-        # Enrich each match with Deezer data (image, followers, albums).
-        # Quietly no-ops if Deezer is unreachable — the rest of the flow keeps
-        # working with "—" placeholders and demo avatars.
-        raw_matches = results.get("matches")
-        if isinstance(raw_matches, list):
-            for m in raw_matches:
-                if not isinstance(m, dict):
-                    continue
-                artist_name = m.get("artist")
-                if not artist_name:
-                    continue
-                enrichment = enrich_artist(artist_name)
-                if not enrichment:
-                    continue
-                if enrichment.get("artist_image"):
-                    m["artist_image"] = enrichment["artist_image"]
-                if enrichment.get("followers") is not None:
-                    m["followers"] = enrichment["followers"]
-                if enrichment.get("albums_count") is not None:
-                    m["albums_count"] = enrichment["albums_count"]
-                if enrichment.get("deezer_id"):
-                    m["deezer_id"] = enrichment["deezer_id"]
+        # Enrich each match with Deezer + Spotify data. Quietly no-ops when a
+        # service is unreachable — the rest of the flow keeps working.
+        _enrich_matches(results)
 
-                # Hybrid: also fetch the verified Spotify profile URL so the
-                # frontend "View Profile" button can open the canonical Spotify
-                # page. Deezer stays the source of truth for followers/albums.
-                # Quietly no-ops if Spotify isn't configured or the artist
-                # isn't on Spotify.
-                spotify_enrichment = enrich_spotify(artist_name)
-                if spotify_enrichment.get("spotify_url"):
-                    m["spotify_url"] = spotify_enrichment["spotify_url"]
-                if spotify_enrichment.get("spotify_id"):
-                    m["spotify_id"] = spotify_enrichment["spotify_id"]
-                # Scraped from the public Spotify artist page — the API
-                # doesn't expose this anymore on the dev tier. Prefer it
-                # over Deezer fans because most clients recognise Spotify
-                # monthly listeners as the canonical streaming metric.
-                if spotify_enrichment.get("monthly_listeners") is not None:
-                    m["monthly_listeners"] = spotify_enrichment["monthly_listeners"]
+        # Stash the raw analysis so a later "Refine results" re-run can re-match
+        # WITHOUT re-uploading / re-analysing the audio (Ciara's #1 ask). Kept
+        # under an underscored key so it's clearly internal.
+        results["_rematch_ctx"] = {
+            "audio_features": audio_features,
+            "lyrics": lyrics,
+            "detected_language": detected_language,
+        }
 
         bpm = round(audio_features.get("tempo", 0)) or None
         energy = round(audio_features.get("energy", 0), 2) if audio_features.get("energy") is not None else None
@@ -283,6 +292,110 @@ async def match_track(
                 os.remove(temp_file_path)
             except Exception:
                 pass
+
+
+@router.post("/tracks/{track_id}/rematch")
+async def rematch_track(
+    track_id: int,
+    refine_hint: str = Form(""),
+    exclude_shown: bool = Form(False),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Re-run the matcher on an already-analysed track using a new refinement
+    line — WITHOUT re-uploading or re-analysing the audio (Ciara's #1 ask:
+    "add a line and run the match again instead of redoing it all over").
+
+    Reuses the audio features + lyrics stashed at first match, layers the new
+    direction on top, and (optionally) excludes the artists already shown so a
+    re-run genuinely returns different names.
+    """
+    track = await session.get(Track, track_id)
+    if track is None or track.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found.")
+
+    match_data = track.match_data if isinstance(track.match_data, dict) else {}
+    ctx = match_data.get("_rematch_ctx") or {}
+    audio_features = ctx.get("audio_features") or {}
+    lyrics = ctx.get("lyrics") or ""
+    detected_language = ctx.get("detected_language") or track.detected_language or "en"
+
+    refine = (refine_hint or "").strip()
+    if not refine and not exclude_shown:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Add a refinement line, or ask for different names.",
+        )
+
+    # Tracks analysed before this feature shipped have no stored audio/lyrics.
+    # Fall back to a description built from the previously detected genre so old
+    # tracks can still be refined without a re-upload.
+    if not audio_features and not lyrics:
+        prior_genre = match_data.get("detected_genre") or ""
+        prior_tags = match_data.get("genre_tags") or []
+        tags_str = ", ".join(t for t in prior_tags if t) if isinstance(prior_tags, list) else ""
+        lyrics = f"Previously detected as: {prior_genre}. Tags: {tags_str}.".strip()
+
+    # Layer the new refinement on top of the original direction. The new line is
+    # authoritative for this re-run.
+    original_hint = (match_data.get("vibe_hint") or "").strip()
+    # Strip any prior "Refine towards:" suffix so repeated refines don't stack
+    # endlessly — keep only the base direction plus the latest refinement.
+    base_hint = original_hint.split(". Refine towards:")[0].strip()
+    if base_hint and refine:
+        combined_hint = f"{base_hint}. Refine towards: {refine}"
+    else:
+        combined_hint = refine or base_hint
+
+    exclude_artists: list[str] = []
+    if exclude_shown:
+        for m in (match_data.get("matches") or []):
+            if isinstance(m, dict) and m.get("artist"):
+                exclude_artists.append(m["artist"])
+
+    try:
+        results = await find_best_match(
+            audio_features, lyrics, detected_language, combined_hint, exclude_artists,
+        )
+        if not isinstance(results, dict):
+            results = {"matches": results}
+        if results.get("error"):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(results.get("error")),
+            )
+
+        _enrich_matches(results)
+
+        # Preserve fields the re-run doesn't regenerate, and keep the rematch
+        # context so the track can be refined again.
+        results["_rematch_ctx"] = ctx
+        results["vibe_hint"] = combined_hint
+        results["track_info"] = match_data.get("track_info", {})
+        results["lyrics_extracted"] = match_data.get("lyrics_extracted", False)
+        results["detected_language"] = detected_language
+        results["success"] = True
+        results["refined"] = True
+
+        # Update the same track in place — keeps My Tracks to one row per song.
+        track.match_data = results
+        track.detected_genre = results.get("detected_genre") or track.detected_genre
+        if isinstance(results.get("genre_tags"), list):
+            track.genre_tags = results.get("genre_tags")
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(track, "match_data")
+        await session.commit()
+        await session.refresh(track)
+
+        results["track_id"] = track.id
+        listening_url = _listening_url(track)
+        if listening_url:
+            results["listening_url"] = listening_url
+        return results
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.get("/tracks", response_model=list[TrackSummaryResponse])

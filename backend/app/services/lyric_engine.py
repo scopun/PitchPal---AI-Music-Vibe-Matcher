@@ -276,13 +276,31 @@ Return ONLY valid JSON:
 # ─────────────────────────────────────────────────────────────────────────
 
 def _match_to_pool(profile: dict, who_looking_str: str, not_available_str: str,
-                   deceased_str: str, detected_language: str) -> dict:
+                   deceased_str: str, detected_language: str,
+                   exclude_artists: list[str] | None = None) -> dict:
     is_english = detected_language.lower() in ['en', 'english', '']
     lang_rule = "" if is_english else (
         f"\nLANGUAGE — ABSOLUTE: the song is in {detected_language.upper()}. "
         "Only match artists who genuinely release music in this language/market. "
         "Never match a UK/US English artist to a non-English song."
     )
+
+    # "Give me different names" — the songwriter has already seen these artists
+    # on a previous run and asked for fresh suggestions. This is a HARD rule so a
+    # re-run genuinely returns new names instead of repeating the same cluster
+    # (Ciara: re-running with an added line showed the same names).
+    exclude_rule = ""
+    if exclude_artists:
+        exclude_list = ", ".join(a for a in exclude_artists if a)
+        if exclude_list:
+            exclude_rule = (
+                "\n10. ALREADY-SHOWN — HARD RULE: the songwriter has ALREADY seen "
+                f"these artists and wants DIFFERENT ones: {exclude_list}. Do NOT "
+                "return any of them (or obvious spelling variants). Find genuinely "
+                "fresh artists that still fit the song's lane and vocal register — "
+                "dig deeper into the pool and the wider industry for the next tier "
+                "of equally valid matches."
+            )
 
     system_prompt = f"""You are an expert A&R at a major UK music publisher with
 20 years of pitching experience. You are given a PRECISE sonic profile of a song
@@ -338,7 +356,7 @@ MATCHING RULES — follow exactly:
    if only 2-3 genuinely fit at 0.85+, return only those. It is better to
    return 3 right artists than 8 with 5 wrong ones.
 8. NEVER suggest these (not available): {not_available_str}
-9. NEVER suggest these (deceased): {deceased_str}{lang_rule}
+9. NEVER suggest these (deceased): {deceased_str}{lang_rule}{exclude_rule}
 
 Return ONLY valid JSON:
 {{
@@ -372,7 +390,7 @@ Return ONLY valid JSON:
 # /match endpoint and matcher.py keep working unchanged.
 # ─────────────────────────────────────────────────────────────────────────
 
-async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected_language: str = "en", vibe_hint: str = "") -> dict:
+async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected_language: str = "en", vibe_hint: str = "", exclude_artists: list[str] | None = None) -> dict:
     db = get_who_looking()
     actively_looking = db.get("actively_looking", [])
     not_available = db.get("not_available", [])
@@ -440,12 +458,17 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected
 
         # ── Stage 2: match the profile to the pool + industry ──────────────
         match_result = _match_to_pool(
-            profile, who_looking_str, not_available_str, deceased_str, detected_language
+            profile, who_looking_str, not_available_str, deceased_str, detected_language,
+            exclude_artists=exclude_artists,
         )
         matches = match_result.get("matches", []) if isinstance(match_result, dict) else []
 
         # ── Code-level filters (defense in depth — never trust prompt only)─
         blocked_norm = {_normalize_name(n) for n in (not_available + deceased)}
+        # Also hard-drop any already-shown artist when the user asked for
+        # different names — defense in depth so a "give me other names" re-run
+        # never repeats a name even if the model slips.
+        exclude_norm = {_normalize_name(n) for n in (exclude_artists or []) if n}
         writes_own_norm = get_writes_own()
         clean_matches = []
         for m in matches:
@@ -455,6 +478,8 @@ async def get_claude_vibe_match(audio_features: dict, lyrics: str = "", detected
                 continue
             if _is_blocked(m.get("artist", ""), blocked_norm):
                 continue  # hard-drop not-available / deceased artists
+            if _normalize_name(m.get("artist", "")) in exclude_norm:
+                continue  # user asked for different names — drop repeats
             score = m.get("final_score", 0)
             if score >= 0.92:
                 m["confidence_level"] = "Strong Match"

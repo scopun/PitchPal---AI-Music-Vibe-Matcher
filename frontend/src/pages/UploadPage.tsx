@@ -6,6 +6,7 @@ import ListenPreviewPlayer from '../components/ListenPreviewPlayer'
 import ConfirmDialog from '../components/ConfirmDialog'
 import {
   matchTrack,
+  rematchTrack,
   validateAudioFile,
   type MatchResponse,
   type MatchItem,
@@ -913,6 +914,23 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
     } else {
       setView('drop')
     }
+  }
+
+  // Refine / re-run — Ciara's #1 ask. From the results view the user types a
+  // new direction (e.g. "female artist, slightly country") and/or asks for
+  // different names, and we re-match the SAME already-analysed track without a
+  // re-upload. Updates the results in place. Throws on failure so ResultsView
+  // can surface an inline error next to its own spinner.
+  const handleRefine = async (refineHint: string, excludeShown: boolean) => {
+    const trackId = matchResult?.track_id
+    if (trackId === undefined) {
+      throw new ApiError('This track needs to be re-uploaded before it can be refined.', 400)
+    }
+    const result = await rematchTrack(trackId, refineHint, excludeShown)
+    // Fresh run — drop any "cached"/saved framing so the badge reflects reality.
+    setMatchResult({ ...result, cached: false })
+    // Match count may have changed; keep My Tracks in sync in the background.
+    void refreshMyTracks()
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -2365,6 +2383,7 @@ export default function UploadPage({ isDark, onToggleTheme }: UploadPageProps) {
                 onUploadAnother={goToUploadAndPick}
                 onDashboard={() => goToTab('dashboard')}
                 onPitch={sendPitch}
+                onRefine={handleRefine}
                 pitchedKeys={pitchedArtistKeys}
               />
             </div>
@@ -2418,6 +2437,7 @@ interface ResultsViewProps {
   onUploadAnother: () => void
   onDashboard: () => void
   onPitch: (artist: MatchItem, trackId: number) => Promise<boolean>
+  onRefine: (refineHint: string, excludeShown: boolean) => Promise<void>
   pitchedKeys: Set<string>
 }
 
@@ -2553,9 +2573,36 @@ function CircularProgress({ value, color, isDark }: { value: number; color: 'cya
   )
 }
 
-function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matchResult, onUploadAnother, onDashboard, onPitch, pitchedKeys }: ResultsViewProps) {
+function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matchResult, onUploadAnother, onDashboard, onPitch, onRefine, pitchedKeys }: ResultsViewProps) {
   const [activeFilter, setActiveFilter] = useState<'all' | '90plus' | 'whoslooking' | 'industry'>('all')
   const [pitchingArtist, setPitchingArtist] = useState<string | null>(null)
+
+  // Refine / re-run box — Ciara's #1 ask. Local state only; the actual
+  // re-match + results swap happens in the parent via onRefine.
+  const [refineHint, setRefineHint] = useState('')
+  const [refineDifferent, setRefineDifferent] = useState(false)
+  const [refining, setRefining] = useState(false)
+  const [refineError, setRefineError] = useState<string | null>(null)
+  const runRefine = async () => {
+    const hint = refineHint.trim()
+    if (!hint && !refineDifferent) {
+      setRefineError('Add a line (e.g. “female artist, slightly country”) or tick “different names”.')
+      return
+    }
+    setRefining(true)
+    setRefineError(null)
+    try {
+      await onRefine(hint, refineDifferent)
+      // Clear the box on success so the next refinement starts fresh; the new
+      // matches render automatically when the parent swaps matchResult.
+      setRefineHint('')
+      setRefineDifferent(false)
+    } catch (err) {
+      setRefineError(err instanceof ApiError ? err.message : 'Could not refine. Please try again.')
+    } finally {
+      setRefining(false)
+    }
+  }
 
   // Sort dropdown — local state + outside-click close.
   const sortOptions = [
@@ -2814,6 +2861,49 @@ function ResultsView({ isDark, icons, uploadedFile, textPrimary, textMuted, matc
             Matches Found
           </span>
         </div>
+      </div>
+
+      {/* Refine / re-run box — Ciara's #1 ask: add a line and run the match
+          again (or ask for different names) WITHOUT re-uploading the track. */}
+      <div className={`${isDark ? 'bg-[rgba(129,55,246,0.06)] border border-white/[0.08]' : 'bg-white border border-[rgba(129,55,246,0.15)]'} rounded-[14px] p-4 md:p-5 flex flex-col gap-3`}>
+        <div className="flex items-center gap-2">
+          <img src={icons.resSparkle} alt="" className="size-[18px] object-contain" />
+          <h3 className={`text-[15px] font-semibold font-manrope ${textPrimary}`}>Refine these matches</h3>
+        </div>
+        <p className={`text-[13px] font-light leading-[1.5] font-poppins ${textMuted}`}>
+          Add a line to steer the match — e.g. “female artist”, “slightly country”, “more of a DJ collaboration” — and run it again on this same track. No re-upload needed.
+        </p>
+        <div className="flex flex-col md:flex-row gap-3 md:items-center">
+          <input
+            type="text"
+            value={refineHint}
+            onChange={(e) => { setRefineHint(e.target.value); if (refineError) setRefineError(null) }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !refining) void runRefine() }}
+            disabled={refining}
+            placeholder="e.g. female artist, slightly country"
+            className={`${isDark ? 'bg-white/[0.04] border border-white/[0.10] text-white placeholder:text-white/40' : 'bg-white border border-[rgba(129,55,246,0.20)] text-pp-navy placeholder:text-pp-navy/40'} flex-1 rounded-[10px] px-[16px] py-[12px] text-[14px] font-poppins outline-none focus:border-pp-purple/50 transition-colors disabled:opacity-60`}
+          />
+          <button
+            onClick={() => { if (!refining) void runRefine() }}
+            disabled={refining}
+            className="gradient-btn pp-btn-lift border border-white/[0.06] text-white font-medium font-poppins text-[14px] px-6 py-[12px] rounded-[10px] flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {refining ? 'Re-running…' : 'Re-run match'}
+          </button>
+        </div>
+        <label className={`flex items-center gap-2 text-[13px] font-poppins cursor-pointer select-none ${textMuted}`}>
+          <input
+            type="checkbox"
+            checked={refineDifferent}
+            onChange={(e) => setRefineDifferent(e.target.checked)}
+            disabled={refining}
+            className="size-[16px] accent-pp-purple cursor-pointer"
+          />
+          Show me different names (exclude the ones above)
+        </label>
+        {refineError && (
+          <p className="text-[13px] font-poppins" style={{ color: isDark ? '#FFB8B8' : '#B42323' }}>{refineError}</p>
+        )}
       </div>
 
       {/* Filter / sort bar.
